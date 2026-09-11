@@ -1,0 +1,207 @@
+/* ============================================================
+   HEADER — lightweight, adapts to the surface beneath it
+   ============================================================ */
+.header{
+  position:fixed;inset:0 0 auto 0;
+  z-index:var(--z-header);
+  height:var(--header-h);
+  color:var(--ink);
+  transition:color var(--d-3) var(--ease-out);
+  pointer-events:none;
+}
+.header > *{pointer-events:auto;}
+
+/* over the film the type flips to ivory; a whisper of scrim keeps it legible */
+.header[data-theme='dark']{color:var(--ivory-100);}
+/* the film runs from a bright street to a dark interior, so the bar
+   needs enough of a scrim to hold ivory type over the worst frame */
+.header::before{
+  content:'';position:absolute;inset:0;height:210%;
+  background:linear-gradient(to bottom,
+    rgba(12,22,38,.74) 0%,
+    rgba(12,22,38,.46) 42%,
+    rgba(12,22,38,0)   100%);
+  opacity:0;transition:opacity var(--d-3) var(--ease-out);
+  pointer-events:none;
+}
+.header[data-theme='dark']::before{opacity:1;}
+
+/* the solid bar takes the tone of the section beneath it */
+.header::after{
+  content:'';position:absolute;inset:0;
+  background:var(--ivory-200);
+  opacity:0;transition:opacity var(--d-3) var(--ease-out);
+  pointer-events:none;
+}
+.header[data-solid]::after{opacity:1;}
+.header[data-theme='dark']::after{background:var(--navy-900);}
+/* the solid bar makes the film scrim redundant, and it bled a grey
+   smudge across the top of the light plate */
+.header[data-solid]::before{opacity:0;}
+
+/* the menu paints ivory behind the bar, so the film scrim must lift
+   and the type flip back to charcoal while it is open */
+.header[data-menu-open]{color:var(--ivory-100);}
+.header[data-menu-open]::before{opacity:0;}
+.header[data-menu-open]::after{opacity:1;}
+
+.header__inner{
+  position:relative;z-index:2;
+  height:var(--header-h);
+  max-width:var(--maxw);margin-inline:auto;
+  padding-inline:var(--gutter);
+  display:flex;align-items:center;gap:var(--s-6);
+}
+
+.header__rule{
+  position:absolute;left:var(--gutter);right:var(--gutter);bottom:0;
+  height:1px;background:currentColor;opacity:0.13;
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform var(--d-4) var(--ease-out);
+}
+.header[data-solid] .header__rule{transform:scaleX(1);}
+
+/* ---------- brand ---------- */
+.brand{
+  display:flex;align-items:baseline;gap:0.7em;
+  flex:0 0 auto;
+}
+.brand__mark{
+  font-family:var(--f-display);
+  font-size:1.32rem;line-height:1;
+  letter-spacing:0.16em;
+  text-indent:0.16em;
+}
+.brand__desc{
+  font-family:var(--f-mono);
+  font-size:var(--t-xs);
+  letter-spacing:var(--ls-wide);
+  text-transform:uppercase;
+  opacity:0.62;
+}
+.brand:hover .brand__desc{opacity:1;}
+.brand__desc,.brand__mark{transition:opacity var(--d-2) var(--ease-out);}
+
+/* ---------- project index (centre) ---------- */
+.header__index{
+  flex:1 1 auto;
+  display:flex;justify-content:center;gap:var(--s-5);
+  opacity:0;visibility:hidden;
+  transform:translateY(-6px);
+  transition:opacity var(--d-3) var(--ease-out),
+             transform var(--d-3) var(--ease-out),
+             visibility 0s linear var(--d-3);
+}
+.header__index[data-visible]{
+  opacity:1;visibility:visible;transform:none;
+  transition-delay:0s;
+}
+.pindex{
+  position:relative;
+  display:flex;align-items:baseline;gap:0.55em;
+  padding:0.4em 0;
+  font-family:var(--f-mono);
+  font-size:var(--t-xs);
+  letter-spacing:var(--ls-wide);
+  text-transform:uppercase;
+  color:currentColor;opacity:0.5;
+  transition:opacity var(--d-2) var(--ease-out);
+}
+.pindex::after{
+  content:'';position:absolute;left:0;bottom:0;
+  width:100%;height:1px;background:currentColor;
+  transform:scaleX(0);transform-origin:right center;
+  transition:transform var(--d-3) var(--ease-out);
+}
+.pindex:hover,.pindex:focus-visible{opacity:1;}
+.pindex:hover::after,.pindex:focus-visible::after{transform:scaleX(1);transform-origin:left center;}
+.pindex[data-active]{opacity:1;}
+.pindex[data-active]::after{transform:scaleX(1);transform-origin:left center;}
+.pindex__name{opacity:0.72;}
+
+/* The page is dark throughout, so nothing in the bar may hard-code its
+   colour: .link and .btn both default to charcoal, which is invisible here. */
+.header .link{color:currentColor;}
+.header .btn--head{
+  color:currentColor;
+  border-color:currentColor;
+}
+.header .btn--head::before{background:var(--ivory-050);}
+.header .btn--head:hover,.header .btn--head:focus-visible{
+  color:var(--navy-900);border-color:var(--ivory-050);
+}
+
+/* ---------- right nav ---------- */
+.header__nav{
+  flex:0 0 auto;
+  display:flex;align-items:center;gap:var(--s-6);
+  font-family:var(--f-mono);
+  font-size:var(--t-xs);
+  letter-spacing:var(--ls-wide);
+  text-transform:uppercase;
+}
+.btn--head{
+  padding:0.72em 1.15em;
+  font-size:var(--t-xs);
+  border-color:currentColor;
+}
+
+/* ---------- burger ---------- */
+.burger{
+  display:none;
+  width:38px;height:38px;margin-right:-8px;
+  position:relative;flex:0 0 auto;
+}
+.burger span{
+  position:absolute;left:9px;width:20px;height:1px;
+  background:currentColor;
+  transition:transform var(--d-2) var(--ease-out),opacity var(--d-1) linear;
+}
+.burger span:nth-child(1){top:17px;}
+.burger span:nth-child(2){top:22px;}
+.burger[aria-expanded='true'] span:nth-child(1){transform:translateY(2.5px) rotate(45deg);}
+.burger[aria-expanded='true'] span:nth-child(2){transform:translateY(-2.5px) rotate(-45deg);}
+
+/* ---------- mobile menu ---------- */
+.menu{
+  position:fixed;inset:0;z-index:calc(var(--z-header) - 1);
+  background:var(--navy-900);color:var(--ivory-100);
+  clip-path:inset(0 0 100% 0);
+  transition:clip-path var(--d-4) var(--ease-in-out);
+}
+.menu[data-open]{clip-path:inset(0 0 0 0);}
+.menu__inner{
+  height:100%;
+  padding:calc(var(--header-h) + var(--s-7)) var(--gutter) var(--s-7);
+  display:flex;flex-direction:column;
+}
+.menu__label{margin-bottom:var(--s-6);color:rgba(247,244,238,.56);}
+.menu__nav{display:flex;flex-direction:column;gap:var(--s-2);flex:1 1 auto;}
+.menu__nav a{
+  display:flex;align-items:baseline;gap:1em;
+  color:var(--ivory-050);
+  font-family:var(--f-display);
+  font-size:clamp(2.25rem,11vw,3.5rem);
+  line-height:1.18;letter-spacing:var(--ls-display);
+  border-bottom:1px solid rgba(247,244,238,.18);
+  padding-bottom:0.24em;
+  opacity:0;transform:translateY(18px);
+  transition:opacity var(--d-4) var(--ease-out),
+             transform var(--d-4) var(--ease-out),
+             color var(--d-2) var(--ease-out);
+}
+.menu[data-open] .menu__nav a{opacity:1;transform:none;}
+.menu[data-open] .menu__nav a:nth-child(1){transition-delay:120ms;}
+.menu[data-open] .menu__nav a:nth-child(2){transition-delay:190ms;}
+.menu[data-open] .menu__nav a:nth-child(3){transition-delay:260ms;}
+.menu__nav a:active,.menu__nav a:hover{color:var(--ivory-100);opacity:.75;}
+.menu__nav .idx{font-size:var(--t-xs);}
+.menu__foot{
+  display:flex;flex-direction:column;gap:var(--s-5);
+  opacity:0;transition:opacity var(--d-4) var(--ease-out) 340ms;
+}
+.menu[data-open] .menu__foot{opacity:1;}
+.menu__cta{justify-content:center;width:100%;
+  --btn-fg:var(--navy-800);--btn-line:var(--ivory-050);background:var(--ivory-050);}
+.menu__cta::before{background:var(--ivory-200);}
+.menu__foot .meta{color:rgba(247,244,238,.6);}

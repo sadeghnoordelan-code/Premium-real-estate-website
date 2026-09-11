@@ -1,0 +1,104 @@
+/* ============================================================
+   SECTION 03 — contact, as the close of the sequence
+   Warm white ground, navy type. The collection panel ends in navy,
+   so the seam between the two is a hard tonal switch.
+   ============================================================ */
+.contact{
+  position:relative;
+  background:var(--ivory-200);
+  color:var(--navy-800);
+  padding-top:clamp(6rem,14vh,11rem);
+}
+.contact::before{
+  content:''; position:absolute; top:0; left:var(--gutter); right:var(--gutter);
+  height:1px; background:rgba(18,32,56,.18);
+}
+
+/* every supporting token sits on the navy scale */
+.contact .label,.contact .meta{ color:rgba(18,32,56,.55); }
+.contact .lead,.contact .body-copy{ color:rgba(18,32,56,.78); }
+.contact .rule-draw{ background:rgba(18,32,56,.22); }
+.contact .link{ color:var(--navy-800); }
+.contact .link:hover,.contact .link:focus-visible{ color:var(--navy-600); }
+
+/* buttons return to the standard navy-on-ivory pair */
+.contact .btn{ --btn-fg:var(--navy-800); --btn-line:rgba(18,32,56,.30); }
+.contact .btn::before{ background:var(--navy-800); }
+.contact .btn:hover,.contact .btn:focus-visible{
+  color:var(--ivory-050); border-color:var(--navy-800);
+}
+.contact .btn--solid{
+  --btn-fg:var(--ivory-050); --btn-line:var(--navy-800);
+  background:var(--navy-800);
+}
+.contact .btn--solid::before{ background:var(--navy-600); }
+.contact .btn--solid:hover,.contact .btn--solid:focus-visible{
+  color:var(--ivory-050); border-color:var(--navy-600);
+}
+
+.contact__top{ max-width:min(100%,72ch); margin-bottom:clamp(3.5rem,8vh,6rem); }
+.contact__title{
+  font-size:var(--t-3xl);
+  color:var(--navy-900);
+  margin:var(--s-5) 0 var(--s-6);
+}
+.contact__lead{ max-width:52ch; margin-bottom:var(--s-7); }
+.contact__cta{ display:flex; flex-wrap:wrap; gap:var(--s-3); }
+
+.contact__divider{ margin-bottom:clamp(2.5rem,6vh,4rem); }
+
+.contact__grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:clamp(1.75rem,3.4vw,3.5rem);
+  padding-bottom:clamp(3.5rem,8vh,6rem);
+}
+.contact__col p.label{ margin-bottom:var(--s-4); }
+
+.contact__list{ display:flex; flex-direction:column; gap:var(--s-4); }
+.contact__list li{ display:flex; flex-direction:column; gap:0.2em; }
+.contact__list--tight li{
+  flex-direction:row; justify-content:space-between; gap:var(--s-3);
+  padding-bottom:0.5em; border-bottom:1px solid rgba(18,32,56,.14);
+}
+.contact__addr{
+  font-style:normal; line-height:1.62;
+  color:rgba(18,32,56,.82); margin-bottom:var(--s-3);
+}
+.contact__coord{
+  margin-top:var(--s-3);
+  color:var(--navy-700);
+  font-size:var(--t-xs); letter-spacing:0.06em;
+}
+
+/* ---------- closing plate ---------- */
+.contact__plate{
+  position:relative;
+  width:100%;
+  aspect-ratio:21/9;
+  overflow:hidden;
+  background:var(--ivory-300);
+  margin-bottom:clamp(3rem,7vh,5rem);
+}
+.contact__plate img{
+  width:100%; height:100%; object-fit:cover;
+  will-change:transform;
+}
+.contact__plate-cap{
+  position:absolute; left:0; bottom:0;
+  padding:0.85em 1.2em;
+  background:var(--ivory-200);
+  color:var(--navy-700);
+  font-size:var(--t-xs); letter-spacing:0.08em;
+}
+
+/* ---------- footer ---------- */
+.footer{
+  border-top:1px solid rgba(18,32,56,.20);
+  padding:var(--s-5) 0 var(--s-6);
+}
+.footer__inner{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:var(--s-5); flex-wrap:wrap;
+}
+.footer__nav{ display:flex; flex-wrap:wrap; gap:var(--s-5); }

@@ -1,0 +1,322 @@
+/* ============================================================
+   BOREAL — Base: reset, typography, shared primitives
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;}
+html{
+  -webkit-text-size-adjust:100%;
+  scroll-behavior:auto;
+  -webkit-tap-highlight-color:transparent;   /* no grey flash on tap */
+}
+body,h1,h2,h3,h4,p,figure,blockquote,dl,dd,ul,ol{margin:0;}
+ul[class],ol[class]{list-style:none;padding:0;}
+img,svg,video,canvas{display:block;max-width:100%;}
+button,input,select,textarea{font:inherit;color:inherit;}
+button{background:none;border:0;padding:0;cursor:pointer;}
+a{color:inherit;text-decoration:none;}
+
+html,body{
+  /* the horizontal rail must never leak a scrollbar */
+  overflow-x:clip;
+  max-width:100%;
+}
+/* reserve the scrollbar so locking/unlocking the hero never shifts layout */
+html{ scrollbar-gutter:stable; }
+
+/* While the hero holds the wheel the page cannot scroll by any route —
+   wheel, touch and keyboard are all routed into the film's timeline. */
+html[data-hero-lock] body{ overflow:hidden; }
+
+body{
+  background:var(--navy-900);
+  color:var(--ink);
+  font-family:var(--f-sans);
+  font-size:var(--t-base);
+  font-weight:300;
+  line-height:var(--lh-body);
+  letter-spacing:0.005em;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:'kern' 1,'liga' 1;
+}
+body[data-locked]{overflow:hidden;}
+
+::selection{background:var(--navy-800);color:var(--ivory-100);}
+
+:focus-visible{
+  outline:1.5px solid var(--accent);
+  outline-offset:3px;
+  border-radius:1px;
+}
+/* only show focus rings for keyboard users */
+:focus:not(:focus-visible){outline:none;}
+
+/* ---------- typography primitives ---------- */
+.display{
+  font-family:var(--f-display);
+  font-weight:400;
+  line-height:var(--lh-tight);
+  letter-spacing:var(--ls-display);
+  color:var(--ink);
+}
+.display em{font-style:italic;}
+
+.label{
+  font-family:var(--f-mono);
+  font-size:var(--t-xs);
+  font-weight:500;
+  letter-spacing:var(--ls-wide);
+  text-transform:uppercase;
+  color:var(--meta);
+  line-height:1;
+}
+.meta{
+  font-family:var(--f-mono);
+  font-size:var(--t-sm);
+  font-weight:400;
+  letter-spacing:0.06em;
+  color:var(--meta);
+  font-variant-numeric:tabular-nums;
+}
+.lead{
+  font-size:var(--t-lg);
+  line-height:1.55;
+  color:var(--ink-soft);
+  font-weight:300;
+}
+.body-copy{color:var(--ink-soft);max-width:46ch;}
+
+/* index numerals — the recurring architectural motif */
+.idx{
+  font-family:var(--f-mono);
+  font-size:var(--t-xs);
+  letter-spacing:0.1em;
+  color:var(--warm-500);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- layout ---------- */
+.shell{
+  width:100%;
+  max-width:var(--maxw);
+  margin-inline:auto;
+  padding-inline:var(--gutter);
+}
+.rule{height:1px;background:var(--line);border:0;width:100%;}
+
+/* a hairline that draws itself in when revealed */
+.rule-draw{
+  height:1px;background:var(--line-strong);border:0;width:100%;
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform var(--d-5) var(--ease-out);
+}
+[data-inview] .rule-draw{transform:scaleX(1);}
+
+/* ---------- reveal system ----------
+   Elements opt in with [data-reveal]; the observer flips
+   [data-inview] on the section. Stagger via --i. */
+[data-reveal]{
+  opacity:0;
+  transform:translate3d(0,22px,0);
+  transition:
+    opacity var(--d-4) var(--ease-out),
+    transform var(--d-4) var(--ease-out);
+  transition-delay:calc(var(--i,0) * 78ms);
+  will-change:opacity,transform;
+}
+[data-reveal='mask']{
+  opacity:1;transform:none;
+  clip-path:inset(0 0 100% 0);
+  transition:clip-path var(--d-5) var(--ease-out);
+  transition-delay:calc(var(--i,0) * 78ms);
+}
+[data-reveal='fade']{transform:none;}
+[data-inview] [data-reveal]{opacity:1;transform:none;}
+[data-inview] [data-reveal='mask']{clip-path:inset(0 0 0 0);}
+
+/* line-by-line text reveal */
+.reveal-line{display:block;overflow:hidden;}
+.reveal-line > span{
+  display:block;
+  transform:translate3d(0,105%,0);
+  transition:transform var(--d-5) var(--ease-out);
+  transition-delay:calc(var(--i,0) * 90ms);
+}
+[data-inview] .reveal-line > span{transform:none;}
+
+@media (prefers-reduced-motion:reduce){
+  [data-reveal],[data-reveal='mask']{opacity:1!important;transform:none!important;clip-path:none!important;}
+  .reveal-line > span{transform:none!important;}
+  .rule-draw{transform:scaleX(1)!important;}
+}
+
+/* ============================================================
+   BUTTONS — every interactive element must read as clickable
+   ============================================================ */
+.btn{
+  --btn-fg:var(--ink);
+  --btn-line:var(--line-strong);
+  position:relative;
+  display:inline-flex;align-items:center;gap:var(--s-4);
+  padding:0.95em 1.6em;
+  font-family:var(--f-mono);
+  font-size:var(--t-sm);
+  font-weight:500;
+  letter-spacing:var(--ls-wide);
+  text-transform:uppercase;
+  color:var(--btn-fg);
+  border:1px solid var(--btn-line);
+  background:transparent;
+  overflow:hidden;
+  isolation:isolate;
+  cursor:pointer;
+  transition:color var(--d-2) var(--ease-out),
+             border-color var(--d-2) var(--ease-out),
+             transform var(--d-2) var(--ease-out);
+}
+/* navy sweeps up from the baseline — restrained, no glow */
+.btn::before{
+  content:'';position:absolute;inset:0;z-index:-1;
+  background:var(--accent);
+  transform:translate3d(0,101%,0);
+  transition:transform var(--d-3) var(--ease-out);
+}
+.btn:hover,.btn:focus-visible{
+  color:var(--ivory-100);
+  border-color:var(--accent);
+}
+.btn:hover::before,.btn:focus-visible::before{transform:none;}
+.btn:active{transform:translateY(1px);}
+.btn[disabled]{opacity:0.34;pointer-events:none;}
+
+.btn .btn-arrow{
+  display:inline-block;
+  transition:transform var(--d-3) var(--ease-out);
+}
+.btn:hover .btn-arrow{transform:translateX(4px);}
+
+/* filled variant — the primary call to action */
+.btn--solid{
+  --btn-fg:var(--ivory-100);
+  --btn-line:var(--accent);
+  background:var(--accent);
+}
+.btn--solid::before{background:var(--navy-600);}
+.btn--solid:hover,.btn--solid:focus-visible{color:var(--ivory-050);border-color:var(--navy-600);}
+
+.btn--ghost{--btn-line:transparent;padding-inline:0;}
+.btn--ghost::before{display:none;}
+.btn--ghost:hover{color:var(--accent);}
+
+/* text link with a wiping underline */
+.link{
+  position:relative;display:inline-block;
+  color:var(--ink);
+  transition:color var(--d-2) var(--ease-out);
+}
+.link::after{
+  content:'';position:absolute;left:0;bottom:-2px;
+  width:100%;height:1px;background:currentColor;
+  transform:scaleX(0);transform-origin:right center;
+  transition:transform var(--d-3) var(--ease-out);
+}
+.link:hover,.link:focus-visible{color:var(--accent);}
+.link:hover::after,.link:focus-visible::after{transform:scaleX(1);transform-origin:left center;}
+
+/* underline that is present and retracts on hover — for nav */
+.link--nav::after{transform:scaleX(0);}
+
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+.skip-link{
+  position:fixed;top:0;left:0;z-index:500;
+  transform:translateY(-110%);
+  background:var(--accent);color:var(--ivory-100);
+  padding:0.8em 1.4em;font-family:var(--f-mono);font-size:var(--t-sm);
+  letter-spacing:var(--ls-wide);text-transform:uppercase;
+  transition:transform var(--d-2) var(--ease-out);
+}
+.skip-link:focus{transform:none;}
+
+/* ============================================================
+   PRELOADER
+   ============================================================ */
+.preloader{
+  position:fixed;inset:0;z-index:var(--z-preload);
+  background:var(--ivory-200);
+  display:grid;place-items:center;
+  transition:clip-path 1100ms var(--ease-in-out),opacity 400ms linear 700ms;
+  clip-path:inset(0 0 0 0);
+}
+.preloader[data-done]{clip-path:inset(0 0 100% 0);pointer-events:none;}
+.preloader__inner{
+  width:min(440px,76vw);
+  display:flex;flex-direction:column;gap:var(--s-5);
+}
+.preloader__mark{display:flex;flex-direction:column;gap:0.55em;align-items:center;}
+.preloader__word{
+  font-family:var(--f-display);
+  font-size:clamp(1.9rem,5vw,2.6rem);
+  letter-spacing:0.34em;text-indent:0.34em;line-height:1;
+}
+.preloader__desc{color:var(--warm-500);}
+.preloader__meter{position:relative;height:1px;background:var(--line-strong);overflow:hidden;}
+.preloader__meter i{
+  position:absolute;inset:0;background:var(--accent);
+  transform:scaleX(0);transform-origin:left center;
+}
+.preloader__foot{display:flex;justify-content:space-between;align-items:baseline;}
+.preloader__foot .meta{font-size:var(--t-xs);letter-spacing:0.12em;}
+
+/* the page holds still until the film is ready to be scrubbed */
+html:not([data-booted]) body{overflow:hidden;}
+
+/* ============================================================
+   CURSOR — desktop pointer only
+   ============================================================ */
+.cursor{
+  position:fixed;inset:0;z-index:var(--z-cursor);
+  pointer-events:none;
+  opacity:0;transition:opacity var(--d-2) linear;
+}
+.cursor[data-on]{opacity:1;}
+.cursor__dot,.cursor__ring{position:absolute;top:0;left:0;will-change:transform;}
+.cursor__dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--accent);
+  transition:width var(--d-2) var(--ease-out),height var(--d-2) var(--ease-out),
+             opacity var(--d-2) var(--ease-out);
+}
+.cursor__ring{
+  width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--accent);
+  display:grid;place-items:center;
+  transition:width var(--d-3) var(--ease-out),height var(--d-3) var(--ease-out),
+             border-color var(--d-2) var(--ease-out),
+             background-color var(--d-2) var(--ease-out);
+}
+.cursor__label{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--ivory-100);
+  opacity:0;transition:opacity var(--d-1) linear;white-space:nowrap;
+}
+.cursor[data-hover] .cursor__ring{width:52px;height:52px;background:rgba(18,32,56,.09);}
+.cursor[data-hover] .cursor__dot{opacity:0;}
+.cursor[data-labelled] .cursor__ring{width:76px;height:76px;background:var(--accent);}
+.cursor[data-labelled] .cursor__label{opacity:1;}
+.cursor[data-down] .cursor__ring{width:26px;height:26px;}
+
+/* over the film, the cursor flips to ivory */
+.cursor[data-light] .cursor__dot{background:var(--ivory-100);}
+.cursor[data-light] .cursor__ring{border-color:rgba(247,244,238,.7);}
+
+html[data-custom-cursor]{cursor:none;}
+html[data-custom-cursor] a,html[data-custom-cursor] button,
+html[data-custom-cursor] input,html[data-custom-cursor] select,
+html[data-custom-cursor] textarea,html[data-custom-cursor] label{cursor:none;}
+@media (hover:none),(pointer:coarse){
+  .cursor{display:none;}
+  html[data-custom-cursor]{cursor:auto;}
+}

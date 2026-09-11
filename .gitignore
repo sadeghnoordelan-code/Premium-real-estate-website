@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------
+# Original source material.
+#
+# These are the inputs the tools in tools/ encode from, not files the
+# site serves. Everything the site actually needs is committed under
+# assets/. Together they are ~112 MB of binaries that git cannot delta
+# compress, so they are kept out of the repository.
+#
+# To include them anyway, delete the four lines below — or better, track
+# them with Git LFS (git lfs track "*.MOV" "*.jpg").
+# ---------------------------------------------------------------
+/4_5796466014182976619.MOV
+/Lima Cabin/
+/Maverick Cabin/
+/Puzzle Cabin/
+
+# ---------------------------------------------------------------
+# Tooling / OS
+# ---------------------------------------------------------------
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini

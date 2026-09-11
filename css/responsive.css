@@ -1,0 +1,240 @@
+/* ============================================================
+   RESPONSIVE
+   >=1024px  split stage: plates two thirds, navy panel one third
+   <=1023px  the two columns interleave into a single stacked column
+   ============================================================ */
+
+/* ---------- narrower desktops: give the panel a little more room ---------- */
+@media (max-width:1440px){
+  .projects__stage{ grid-template-columns:1.85fr 1fr; }
+  .pcard__desc{ font-size:var(--t-xs); line-height:1.6; }
+}
+@media (max-width:1180px){
+  :root{ --header-h:66px; }
+  .projects__stage{ grid-template-columns:1.6fr 1fr; }
+  .pcard__tagline{ font-size:var(--t-base); }
+  .pcard__specs{ gap:var(--s-4); }
+  .collindex__name{ display:none; }
+}
+
+/* ---------- short viewports: the panel has to give back rhythm ---------- */
+@media (min-width:1024px) and (max-height:860px){
+  .projects__panel{ padding-top:calc(var(--header-h) + 1rem); }
+  .pcard__name{ font-size:clamp(1.7rem,2.5vw,2.3rem); }
+  .pcard__tagline{ margin-bottom:var(--s-3); }
+  .pcard__desc{ margin-bottom:var(--s-4); }
+  .pcard__specs,.pcard__geo{ padding-bottom:var(--s-3); }
+  .pcard__geo{ margin-bottom:0; }
+  .pcard__foot{ padding-top:var(--s-4); }
+  .pnav__count{ font-size:clamp(2.2rem,3.4vw,3rem); }
+  .collindex{ padding-top:var(--s-4); margin-top:var(--s-4); }
+}
+@media (min-width:1024px) and (max-height:760px){
+  .pcard__desc{ display:none; }
+  .pcard__plot{ display:none; }
+}
+
+/* ============================================================
+   TABLET & PHONE — the split stage becomes one stacked column
+   ============================================================ */
+@media (max-width:1023px){
+
+  /* ---- header ---- */
+  .header__nav,.header__index{ display:none; }
+  .burger{ display:block; margin-left:auto; }
+  .brand__desc{ display:none; }
+
+  /* ---- hero ---- */
+  .hero__inner{ padding-bottom:clamp(6rem,13vh,8rem); }
+  .hero__copy{ min-height:clamp(13rem,34vh,18rem); }
+  .hero-beat__title{ font-size:clamp(2.25rem,8.6vw,4rem); }
+  .hero-beat__body{ font-size:var(--t-base); max-width:38ch; }
+  .hero__ticks span:nth-child(3),
+  .hero__ticks span:nth-child(4){ bottom:86px; }
+  .hero__cue{ display:none; }
+
+  /* ---- collection: unpin, interleave plate + card per project ---- */
+  .projects__spacer{ height:auto; }
+  .projects__stage{
+    position:static; height:auto; overflow:visible;
+    display:flex; flex-direction:column;
+    grid-template-columns:none;
+  }
+  /* the two wrappers step aside so plates and cards can alternate */
+  .projects__media,.projects__panel{ display:contents; }
+
+  .projects__eyebrow,.projects__meter,.pnav{ display:none; }
+
+  .projects__shots{ display:contents; }
+  .pshot{
+    position:relative; inset:auto;
+    order:calc(var(--i) * 2);
+    transform:none !important;
+    opacity:1 !important;
+    visibility:visible !important;
+  }
+  .pshot__inner{
+    position:relative; inset:auto;
+    padding:clamp(2.5rem,9vw,4rem) var(--gutter) clamp(2rem,7vw,3rem);
+    gap:clamp(1.25rem,4vw,2rem);
+    transform:none !important;
+  }
+  .pdisc-wrap{ width:min(78vw,420px); }
+  /* on touch there is no hover, so the reveal is settled from the start */
+  .pshot .pdisc{ transform:none; opacity:1; }
+  .pshot .pdisc__img[data-on]{ opacity:1; --sweep:360deg; }
+  .pshot .pdisc__dot,.pshot .pshot__coords,
+  .pshot .pshot__thumbs,.pshot .pshot__cap{ opacity:1; transform:none; }
+  .pshot .pdisc__leader{ transform:rotate(133deg) scaleX(1); }
+  .pdisc__hit::after{ display:none; }
+  .pshot__coords{ font-size:clamp(0.95rem,4vw,1.3rem); }
+
+  .projects__cards{ display:contents; }
+  .pcard{
+    position:relative; inset:auto;
+    order:calc(var(--i) * 2 + 1);
+    transform:none !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    background:var(--navy-800);
+    padding:clamp(2rem,7vw,3rem) var(--gutter) clamp(2.5rem,8vw,3.5rem);
+  }
+  .pcard__name{ font-size:clamp(2rem,8vw,2.75rem); }
+  .pcard__desc{ font-size:var(--t-base); }
+  .pcard__cta{ font-size:var(--t-sm); }
+  .pcard__char{ grid-template-columns:8em 1fr; }
+  /* on touch the reveal transitions have no trigger, so show them settled */
+  .pcard .sitemark__ring{ transform:scale(1); opacity:1; }
+  .pcard .sitemark__cross{ stroke-dashoffset:0; }
+  .pcard .sitemark__dot{ opacity:1; transform:scale(1); }
+
+  /* the numbered index becomes a sticky bar at the foot of the section */
+  .collindex{
+    order:99;
+    position:sticky; bottom:0; top:auto; z-index:6;
+    transform:none;
+    left:auto; right:auto;
+    flex-direction:row; justify-content:space-between;
+    gap:var(--s-3);
+    margin-top:0; padding:var(--s-3) var(--gutter);
+    background:var(--navy-900);
+    border-top:1px solid rgba(247,244,238,.16);
+  }
+  .collindex__b{ flex:1 1 0; }
+  .collindex__n{ font-size:1.15rem; }
+  .collindex__name{ opacity:1; transform:none; }
+
+  /* ---- booking: follow the true step order ---- */
+  .booking__panel{ padding:0; }
+  .booking__grid{
+    display:flex; flex-direction:column;
+    grid-template-columns:none; grid-template-rows:none;
+  }
+  .booking__col{ display:contents; }
+  .b-identity{ order:1; }
+  .b-calendar{ order:2; }
+  .b-details{ order:3; }
+  .b-summary{ order:4; }
+  .b-identity,.b-details,.b-calendar,.b-summary{
+    grid-column:auto; grid-row:auto;
+    border-right:0; margin-top:0;
+    background:transparent;
+    padding:clamp(1.5rem,5vw,2.25rem) clamp(1.25rem,5vw,2.25rem);
+  }
+  .cal{ max-width:none; }
+  .b-identity{ padding-bottom:0; }
+  .b-details{ padding-block:clamp(1.5rem,5vw,2.25rem); border-top:1px solid var(--line); }
+  .b-calendar{ border-top:1px solid var(--line); }
+  .b-summary{ background:var(--ivory-200); padding-top:var(--s-4); }
+  .booking__inner{ min-height:100%; }
+
+  /* ---- contact ---- */
+  .contact__grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .contact__plate{ aspect-ratio:16/10; }
+}
+
+/* ============================================================
+   PHONE
+   ============================================================ */
+@media (max-width:640px){
+  :root{ --header-h:60px; }
+
+  .hero__hud{ height:56px; }
+  .hero__hud-item--r{ display:none; }
+  .hero-beat__kicker{ margin-bottom:var(--s-4); }
+  .hero-beat__body{ font-size:var(--t-base); }
+  .hero__ticks{ display:none; }
+
+  .pshot{ aspect-ratio:3/4; }
+  .pcard__specs{ flex-wrap:wrap; gap:var(--s-3) var(--s-5); }
+  .pcard__geo{ gap:var(--s-3); }
+  .sitemark{ width:54px; }
+  .collindex{ gap:var(--s-3); }
+  .collindex__b{ font-size:10px; }
+
+  .bform__row{ grid-template-columns:1fr; gap:0; }
+  .bsummary__list{ grid-template-columns:1fr; gap:var(--s-3); }
+  .bsummary__list > div{
+    display:flex; justify-content:space-between; gap:var(--s-3);
+    padding-bottom:0.5em; border-bottom:1px solid var(--line);
+  }
+  .bsummary__list dt{ margin-bottom:0; }
+  .btimes__grid{ grid-template-columns:repeat(auto-fill,minmax(94px,1fr)); }
+  .bproject{ gap:var(--s-4); }
+  .bdone__list{ grid-template-columns:1fr; }
+  .bdone__cta{ flex-direction:column; }
+  .bdone__cta .btn{ justify-content:center; }
+
+  .contact__grid{ grid-template-columns:1fr; gap:var(--s-6); }
+  .contact__cta{ flex-direction:column; align-items:stretch; }
+  .contact__cta .btn{ justify-content:center; }
+  .contact__plate{ aspect-ratio:4/3; }
+  .footer__inner{ flex-direction:column; align-items:flex-start; gap:var(--s-4); }
+  .footer__nav{ gap:var(--s-4); }
+}
+
+/* ---------- very short viewports (landscape phone) ---------- */
+@media (max-height:520px) and (max-width:1023px){
+  .hero__inner{ padding-bottom:5rem; }
+  .hero-beat__body{ display:none; }
+}
+
+/* ---------- honour the OS setting ----------
+   Reduced motion removes motion the visitor did not ask for: the cue pulse,
+   parallax drift, the custom cursor, entrance transitions. It does NOT
+   dismantle the two scroll-driven surfaces — the film and the collection
+   only move in direct response to the visitor's own input, and stop the
+   moment they stop. Collapsing them made the film jump ~85 frames a notch. */
+@media (prefers-reduced-motion:reduce){
+  .hero__cue{ display:none; }
+  .contact__plate img{ transform:none !important; }
+}
+
+/* ============================================================
+   TOUCH — a tapped control keeps :hover until the next tap on most
+   mobile browsers, which leaves controls looking stuck.
+   Keyboard focus is preserved via :focus-visible.
+   ============================================================ */
+@media (hover:none){
+  .calbtn:hover:not([disabled]):not(:focus-visible),
+  .pnav__btn:hover:not(:focus-visible){
+    background:transparent; color:rgba(247,244,238,.78);
+    border-color:rgba(247,244,238,.28);
+  }
+  .slot:hover:not([disabled]):not(:focus-visible):not([data-selected]){
+    border-color:var(--line-strong); transform:none;
+  }
+  .bswitch__b:hover:not([data-active]):not(:focus-visible){
+    border-color:var(--line-strong); color:var(--ink-soft);
+  }
+  .cal__d:hover:not([disabled]):not(:focus-visible):not([data-selected]){
+    border-color:transparent; color:var(--ink-soft);
+  }
+  .booking__close:hover:not(:focus-visible){ background:transparent; }
+  .booking__close:hover:not(:focus-visible) span{ background:var(--ink); }
+  .btn:hover:not(:focus-visible)::before{ transform:translate3d(0,101%,0); }
+  .btn:not(.btn--solid):hover:not(:focus-visible){
+    color:var(--btn-fg); border-color:var(--btn-line);
+  }
+  .collindex__b:hover:not([data-active]) .collindex__rule::after{ transform:scaleX(0); }
+}

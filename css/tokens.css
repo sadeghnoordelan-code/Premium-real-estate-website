@@ -1,0 +1,99 @@
+/* ============================================================
+   BOREAL — Design Tokens
+   A single source of truth for colour, type, space, motion.
+   COLOUR RULE: exactly four families. Ivory dominates.
+   Navy is the only accent. Charcoal carries type. Warm grey supports.
+   ============================================================ */
+:root{
+  /* ---- 1. IVORY / WARM WHITE — dominant surface ---- */
+  --ivory-050:#FFFDFA;
+  --ivory-100:#FCFAF6;
+  --ivory-200:#F7F4EE;   /* page background */
+  --ivory-300:#F1ECE3;   /* alternate band */
+  --ivory-400:#E8E2D7;
+
+  /* ---- 2. DEEP NAVY — brand accent, used sparingly ---- */
+  --navy-900:#0C1626;
+  --navy-800:#122038;    /* primary */
+  --navy-700:#1B2E4E;
+  --navy-600:#2A4269;
+  --navy-100:#DDE3EC;
+
+  /* ---- 3. CHARCOAL / NEAR BLACK — typography ---- */
+  --char-900:#131210;
+  --char-800:#1D1B18;
+  --char-700:#2B2823;
+
+  /* ---- 4. NEUTRAL WARM GREY — metadata, borders,support ---- */
+  --warm-700:#6B6459;
+  --warm-600:#837B6F;
+  --warm-500:#9C9386;
+  --warm-400:#B7AE9F;
+  --warm-300:#D3CBBC;    /* border */
+  --warm-200:#E3DCD0;    /* hairline */
+
+  /* ---- semantic ---- */
+  --bg:var(--ivory-200);
+  --bg-raised:var(--ivory-100);
+  --bg-sunken:var(--ivory-300);
+  --ink:var(--char-900);
+  --ink-soft:var(--char-700);
+  --meta:var(--warm-600);
+  --line:var(--warm-200);
+  --line-strong:var(--warm-300);
+  --accent:var(--navy-800);
+  --accent-hover:var(--navy-600);
+
+  /* ---- TYPE ---- */
+  --f-display:'Instrument Serif',
+              'Big Caslon','Hoefler Text',Garamond,'Times New Roman',serif;
+  --f-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+
+  /* fluid scale — min 360px viewport, max 1680px */
+  --t-xs:0.6875rem;                                   /* 11 — micro labels */
+  --t-sm:0.75rem;                                     /* 12 — meta */
+  --t-base:clamp(0.875rem,0.82rem + 0.22vw,1rem);     /* 14→16 body */
+  --t-lg:clamp(1rem,0.93rem + 0.32vw,1.1875rem);      /* 16→19 lead */
+  --t-xl:clamp(1.375rem,1.15rem + 1.0vw,2rem);        /* 22→32 */
+  --t-2xl:clamp(1.875rem,1.35rem + 2.3vw,3.5rem);     /* 30→56 */
+  --t-3xl:clamp(2.5rem,1.5rem + 4.4vw,6rem);          /* 40→96 */
+  --t-4xl:clamp(3.25rem,1.4rem + 8.2vw,9.5rem);       /* 52→152 display */
+
+  --lh-tight:0.94;
+  --lh-snug:1.12;
+  --lh-body:1.62;
+
+  --ls-display:-0.025em;
+  --ls-tight:-0.015em;
+  --ls-wide:0.14em;    /* small caps labels */
+  --ls-wider:0.22em;
+
+  /* ---- SPACE (8px base) ---- */
+  --s-1:0.25rem; --s-2:0.5rem;  --s-3:0.75rem; --s-4:1rem;
+  --s-5:1.5rem;  --s-6:2rem;    --s-7:3rem;    --s-8:4rem;
+  --s-9:6rem;    --s-10:8rem;   --s-11:12rem;
+
+  --gutter:clamp(1.25rem,4.2vw,4.5rem);
+  --maxw:1680px;
+  --header-h:74px;
+
+  /* ---- MOTION — one easing family, used everywhere ---- */
+  --ease-out:cubic-bezier(0.16,1,0.30,1);        /* expo out — the signature */
+  --ease-in-out:cubic-bezier(0.76,0,0.24,1);     /* quart — section moves */
+  --ease-soft:cubic-bezier(0.33,1,0.68,1);       /* cubic out — micro */
+
+  --d-1:180ms;  /* micro feedback */
+  --d-2:340ms;  /* hover / state */
+  --d-3:620ms;  /* element reveal */
+  --d-4:1000ms; /* scene */
+  --d-5:1500ms; /* cinematic */
+
+  /* ---- z ---- */
+  --z-stage:1; --z-content:10; --z-header:100;
+  --z-overlay:200; --z-cursor:300; --z-preload:400;
+}
+
+@media (prefers-reduced-motion:reduce){
+  :root{ --d-1:1ms;--d-2:1ms;--d-3:1ms;--d-4:1ms;--d-5:1ms; }
+}

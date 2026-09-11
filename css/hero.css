@@ -1,0 +1,171 @@
+/* ============================================================
+   SECTION 01 — the scroll-driven film
+   A tall spacer scrolls; the stage stays pinned inside it.
+   ============================================================ */
+.hero{ position:relative; background:var(--navy-900); }
+
+/* The hero is exactly one viewport. It does not scroll: while it holds
+   the wheel the page cannot move at all, and the film advances instead. */
+.hero__spacer{ height:100vh; height:100svh; position:relative; }
+
+.hero__stage{
+  position:sticky; top:0;
+  height:100vh; height:100svh;
+  overflow:hidden;
+  background:var(--navy-900);
+}
+
+.hero__video,
+.hero__canvas{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  opacity:0;
+  transform:scale(1.03);
+  transition:opacity 1200ms var(--ease-out), transform 1800ms var(--ease-out);
+}
+.hero[data-ready][data-mode='video']  .hero__video{ opacity:1; transform:none; }
+.hero[data-ready][data-mode='frames'] .hero__canvas{ opacity:1; transform:none; }
+/* only one renderer is ever live */
+.hero[data-mode='video']  .hero__canvas{ display:none; }
+.hero[data-mode='frames'] .hero__video{ display:none; }
+.hero__video::-webkit-media-controls{ display:none !important; }
+
+/* Legibility scrim, built from the navy family so it never reads as
+   a grey wash over a warm image. */
+.hero__scrim{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(to top,
+      rgba(12,22,38,.80) 0%,
+      rgba(12,22,38,.52) 22%,
+      rgba(12,22,38,.14) 46%,
+      rgba(12,22,38,0)   66%),
+    linear-gradient(to bottom,
+      rgba(12,22,38,.42) 0%,
+      rgba(12,22,38,0)   26%),
+    radial-gradient(120% 78% at 50% 42%,
+      rgba(12,22,38,0) 44%, rgba(12,22,38,.30) 100%);
+}
+
+/* corner registration marks — the drawing-sheet motif */
+.hero__ticks{ position:absolute; inset:0; pointer-events:none; }
+.hero__ticks span{
+  position:absolute; width:19px; height:19px;
+  border:1px solid rgba(247,244,238,.34);
+  opacity:0; transition:opacity var(--d-5) var(--ease-out) 500ms;
+}
+.hero[data-ready] .hero__ticks span{ opacity:1; }
+.hero__ticks span:nth-child(1){ top:calc(var(--header-h) + 14px); left:var(--gutter); border-right:0; border-bottom:0; }
+.hero__ticks span:nth-child(2){ top:calc(var(--header-h) + 14px); right:var(--gutter); border-left:0; border-bottom:0; }
+.hero__ticks span:nth-child(3){ bottom:96px; left:var(--gutter);  border-right:0; border-top:0; }
+.hero__ticks span:nth-child(4){ bottom:96px; right:var(--gutter); border-left:0;  border-top:0; }
+
+/* ---------------- copy ---------------- */
+.hero__inner{
+  position:absolute; inset:0;
+  display:flex; align-items:flex-end;
+  padding-bottom:clamp(7rem,15vh,11rem);
+  pointer-events:none;
+}
+.hero__copy{
+  position:relative;
+  width:min(100%,62ch);
+  min-height:clamp(15rem,30vh,22rem);
+}
+
+.hero-beat{
+  position:absolute; left:0; bottom:0; width:100%;
+  color:var(--ivory-100);
+  opacity:0; visibility:hidden;
+  will-change:opacity,transform;
+}
+/* the first beat is live at p=0; keep it masked until boot so it
+   performs its reveal instead of appearing behind the preloader */
+html:not([data-booted]) .hero-beat .reveal-line > span{
+  transform:translate3d(0,105%,0);
+}
+html:not([data-booted]) .hero-beat__kicker,
+html:not([data-booted]) .hero-beat__body{ opacity:0; }
+.hero-beat__kicker,.hero-beat__body{
+  transition:opacity var(--d-5) var(--ease-out) 260ms;
+}
+
+.hero-beat__kicker{
+  color:rgba(247,244,238,.66);
+  margin-bottom:var(--s-5);
+}
+.hero-beat__title{
+  font-size:var(--t-3xl);
+  color:var(--ivory-050);
+  margin-bottom:var(--s-5);
+  text-wrap:balance;
+}
+.hero-beat__title em{ color:var(--ivory-100); }
+.hero-beat__body{
+  max-width:44ch;
+  color:rgba(247,244,238,.80);
+  font-size:var(--t-lg);
+  line-height:1.55;
+  font-weight:300;
+}
+
+/* ---------------- HUD ---------------- */
+.hero__hud{
+  position:absolute; left:0; right:0; bottom:0;
+  height:64px;
+  display:flex; align-items:center; gap:var(--s-5);
+  color:rgba(247,244,238,.62);
+  opacity:0; transition:opacity var(--d-5) var(--ease-out) 700ms;
+}
+.hero[data-ready] .hero__hud{ opacity:1; }
+.hero__hud-item{ color:inherit; flex:0 0 auto; font-size:var(--t-xs); letter-spacing:0.12em; }
+.hero__hud-item--r{ text-align:right; }
+.hero__bar{
+  position:relative; flex:1 1 auto; height:1px;
+  background:rgba(247,244,238,.20);
+}
+.hero__bar i{
+  position:absolute; inset:0;
+  background:var(--ivory-050);
+  transform:scaleX(0); transform-origin:left center;
+  will-change:transform;
+}
+
+/* ---------------- scroll cue ---------------- */
+.hero__cue{
+  position:absolute; left:50%; bottom:88px;
+  transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:var(--s-3);
+  color:rgba(247,244,238,.72);
+  opacity:0;
+  transition:opacity var(--d-4) var(--ease-out);
+}
+.hero[data-ready] .hero__cue{ opacity:1; transition-delay:1100ms; }
+.hero__cue[data-hidden]{ opacity:0 !important; transition-delay:0s; }
+.hero__cue .label{ color:inherit; }
+.hero__cue-line{
+  position:relative; width:1px; height:44px;
+  background:rgba(247,244,238,.22); overflow:hidden;
+}
+.hero__cue-line::after{
+  content:''; position:absolute; left:0; top:0; width:1px; height:16px;
+  background:var(--ivory-050);
+  animation:cue-run 2100ms var(--ease-in-out) infinite;
+}
+@keyframes cue-run{
+  0%   { transform:translateY(-100%); opacity:0; }
+  22%  { opacity:1; }
+  78%  { opacity:1; }
+  100% { transform:translateY(280%); opacity:0; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  /* No spacer override here any more. The old rule collapsed the hero to
+     150vh, which mapped a single wheel notch onto ~85 frames — the film
+     became five stills. The timeline is now driven by accumulated wheel
+     input, so it is identical regardless of this setting; only the easing
+     and the decorative animation are dropped. */
+  .hero__cue-line::after{ animation:none; }
+  .hero__video,.hero__canvas{ transform:none; }
+}

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BOREAL — Architectural Estates</title>
+<meta name="description" content="BOREAL designs and places a small number of houses each year, in forests, on coastlines, and at altitude. Three houses currently available: Lima, Maverick and Puzzle.">
+<meta name="theme-color" content="#F7F4EE">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="BOREAL — Architectural Estates">
+<meta property="og:description" content="Three architectural houses, currently available. Norway, Austria, Sweden.">
+<meta property="og:image" content="assets/projects/maverick-main.webp">
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="preload" href="assets/fonts/instr-n400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-n300-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/header.css">
+<link rel="stylesheet" href="css/hero.css">
+<link rel="stylesheet" href="css/projects.css">
+<link rel="stylesheet" href="css/booking.css">
+<link rel="stylesheet" href="css/contact.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+<a class="skip-link" href="#projects">Skip to the projects</a>
+
+<!-- ═══════════ PRELOADER ═══════════ -->
+<div class="preloader" data-preloader role="status" aria-live="polite">
+  <div class="preloader__inner">
+    <div class="preloader__mark">
+      <span class="preloader__word">BOREAL</span>
+      <span class="preloader__desc label">Architectural Estates</span>
+    </div>
+    <div class="preloader__meter"><i data-preload-bar></i></div>
+    <div class="preloader__foot">
+      <span class="meta">Preparing the film</span>
+      <span class="meta"><span data-preload-pct>0</span>%</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CURSOR ═══════════ -->
+<div class="cursor" data-cursor aria-hidden="true">
+  <div class="cursor__dot"></div>
+  <div class="cursor__ring"><span class="cursor__label"></span></div>
+</div>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="header" data-header>
+  <div class="header__inner">
+    <a class="brand" href="#hero" data-nav aria-label="BOREAL — home">
+      <span class="brand__mark">BOREAL</span>
+      <span class="brand__desc">Architectural&nbsp;Estates</span>
+    </a>
+
+    <nav class="header__index" data-project-nav aria-label="Projects">
+      <button class="pindex" data-goto-project="0">
+        <span class="pindex__n">01</span><span class="pindex__name">Lima</span>
+      </button>
+      <button class="pindex" data-goto-project="1">
+        <span class="pindex__n">02</span><span class="pindex__name">Maverick</span>
+      </button>
+      <button class="pindex" data-goto-project="2">
+        <span class="pindex__n">03</span><span class="pindex__name">Puzzle</span>
+      </button>
+    </nav>
+
+    <nav class="header__nav" aria-label="Main">
+      <a class="link link--nav" href="#projects" data-nav>Projects</a>
+      <a class="link link--nav" href="#contact" data-nav>Contact</a>
+      <button class="btn btn--head" data-open-booking>
+        Reserve a viewing <span class="btn-arrow">&rarr;</span>
+      </button>
+    </nav>
+
+    <button class="burger" data-burger aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+      <span></span><span></span>
+    </button>
+  </div>
+  <div class="header__rule"></div>
+</header>
+
+<!-- ═══════════ MOBILE MENU ═══════════ -->
+<div class="menu" id="mobile-menu" data-menu hidden>
+  <div class="menu__inner">
+    <p class="label menu__label">Menu</p>
+    <nav class="menu__nav">
+      <a href="#hero"     data-nav data-menu-close><span class="idx">01</span> Studio</a>
+      <a href="#projects" data-nav data-menu-close><span class="idx">02</span> Projects</a>
+      <a href="#contact"  data-nav data-menu-close><span class="idx">03</span> Contact</a>
+    </nav>
+    <div class="menu__foot">
+      <button class="btn btn--solid menu__cta" data-open-booking data-menu-close>
+        Reserve a viewing <span class="btn-arrow">&rarr;</span>
+      </button>
+      <p class="meta">acquisitions@boreal.estate<br>+47 22 04 18 60</p>
+    </div>
+  </div>
+</div>
+
+<main id="main">
+
+  <!-- ═══════════ 01 — HERO ═══════════ -->
+  <section id="hero" class="hero" aria-label="Introduction">
+    <h1 class="sr-only">BOREAL — Architectural Estates. Arrival is the first room.</h1>
+    <div class="hero__spacer">
+      <div class="hero__stage">
+        <!-- The film. Muted, paused, no controls: its timeline is driven
+             only by accumulated wheel input. src is attached in JS once the
+             whole file is preloaded into a Blob. -->
+        <video class="hero__video" aria-hidden="true"
+               muted playsinline preload="auto"
+               disablepictureinpicture disableremoteplayback></video>
+        <!-- fallback renderer, used only if the video cannot be decoded -->
+        <canvas class="hero__canvas" aria-hidden="true"></canvas>
+        <div class="hero__scrim" aria-hidden="true"></div>
+        <div class="hero__ticks" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+
+        <div class="hero__inner shell">
+          <div class="hero__copy" data-hero-copy></div>
+        </div>
+
+        <div class="hero__hud shell" aria-hidden="true">
+          <span class="meta hero__hud-item" data-hero-counter>001 / 391</span>
+          <div class="hero__bar"><i data-hero-bar></i></div>
+          <span class="meta hero__hud-item hero__hud-item--r">Section 01 &mdash; Film</span>
+        </div>
+
+        <div class="hero__cue" aria-hidden="true">
+          <span class="label">Scroll</span>
+          <span class="hero__cue-line"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 02 — COLLECTION ═══════════
+       Split stage: the film plate runs two thirds, a navy panel holds the
+       project's identity in the remaining third. Scrolling turns the
+       projects to the right; the panel changes with them. -->
+  <section id="projects" class="projects" aria-label="Collection">
+    <div class="projects__spacer" data-projects-spacer>
+      <div class="projects__stage">
+
+        <div class="projects__media" data-media>
+          <div class="projects__shots" data-shots></div>
+          <nav class="collindex" data-rail-dots aria-label="Choose a project"></nav>
+          <div class="projects__meter" aria-hidden="true"><i data-rail-meter></i></div>
+          <div class="projects__eyebrow label" aria-hidden="true">
+            Section 02 &mdash; Collection
+          </div>
+        </div>
+
+        <aside class="projects__panel" data-panel>
+          <div class="projects__cards" data-cards></div>
+          <div class="pnav">
+            <div class="pnav__arrows">
+              <button class="pnav__btn" data-rail-prev aria-label="Previous project">
+                <svg viewBox="0 0 30 12" aria-hidden="true"><path d="M29 6H1m0 0 5-5M1 6l5 5"/></svg>
+              </button>
+              <button class="pnav__btn" data-rail-next aria-label="Next project">
+                <svg viewBox="0 0 30 12" aria-hidden="true"><path d="M1 6h28m0 0-5-5M29 6l-5 5"/></svg>
+              </button>
+            </div>
+            <p class="pnav__count" aria-hidden="true">
+              <span class="pnav__star">&lowast;</span><span data-rail-current>01</span>
+            </p>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 — CONTACT ═══════════ -->
+  <section id="contact" class="contact" aria-label="Contact" data-observe>
+    <div class="shell">
+
+      <div class="contact__top">
+        <span class="label" data-reveal>Section 03 &mdash; Contact</span>
+        <h2 class="contact__title display">
+          <span class="reveal-line"><span>Begin with</span></span>
+          <span class="reveal-line" style="--i:1"><span><em>a conversation.</em></span></span>
+        </h2>
+        <p class="lead contact__lead" data-reveal style="--i:2">
+          We take on a small number of commissions and placements each year.
+          Tell us what you are looking for, or reserve a viewing of one of the
+          three houses currently available.
+        </p>
+        <div class="contact__cta" data-reveal style="--i:3">
+          <button class="btn btn--solid" data-open-booking>
+            Reserve a viewing <span class="btn-arrow">&rarr;</span>
+          </button>
+          <a class="btn" href="mailto:acquisitions@boreal.estate">
+            Write to us <span class="btn-arrow">&rarr;</span>
+          </a>
+        </div>
+      </div>
+
+      <hr class="rule-draw contact__divider">
+
+      <div class="contact__grid">
+
+        <div class="contact__col" data-reveal style="--i:0">
+          <p class="label">Enquiries</p>
+          <ul class="contact__list">
+            <li><span class="meta">Acquisitions</span>
+                <a class="link" href="mailto:acquisitions@boreal.estate">acquisitions@boreal.estate</a></li>
+            <li><span class="meta">Press</span>
+                <a class="link" href="mailto:press@boreal.estate">press@boreal.estate</a></li>
+            <li><span class="meta">Studio</span>
+                <a class="link" href="mailto:studio@boreal.estate">studio@boreal.estate</a></li>
+          </ul>
+        </div>
+
+        <div class="contact__col" data-reveal style="--i:1">
+          <p class="label">Oslo &mdash; Head Office</p>
+          <address class="contact__addr">
+            Thorvald Meyers gate 44<br>
+            0555 Oslo, Norway
+          </address>
+          <a class="link meta" href="tel:+4722041860">+47 22 04 18 60</a>
+          <p class="meta contact__coord">59&deg;55&prime;31&Prime;N&ensp;10&deg;45&prime;20&Prime;E</p>
+        </div>
+
+        <div class="contact__col" data-reveal style="--i:2">
+          <p class="label">Vienna &mdash; Alpine</p>
+          <address class="contact__addr">
+            Getreidemarkt 17<br>
+            1060 Vienna, Austria
+          </address>
+          <a class="link meta" href="tel:+4315128840">+43 1 512 88 40</a>
+          <p class="meta contact__coord">48&deg;11&prime;58&Prime;N&ensp;16&deg;21&prime;58&Prime;E</p>
+        </div>
+
+        <div class="contact__col contact__col--hours" data-reveal style="--i:3">
+          <p class="label">Viewings</p>
+          <ul class="contact__list contact__list--tight">
+            <li><span class="meta">Mon &ndash; Fri</span><span>09:30 &ndash; 17:00</span></li>
+            <li><span class="meta">Saturday</span><span>10:00 &ndash; 15:00</span></li>
+            <li><span class="meta">Sunday</span><span>By arrangement</span></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="contact__plate" data-reveal="mask" style="--i:1">
+        <img src="assets/projects/puzzle-sub.webp" alt="Puzzle Cabin seen from above, set into pine heath"
+             loading="lazy" decoding="async" width="900" height="900" data-parallax="0.09">
+        <span class="contact__plate-cap meta">Puzzle Cabin &mdash; Ljugarn, Gotland</span>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <div class="shell footer__inner">
+        <span class="meta">&copy; <span data-year>2026</span> Boreal Architectural Estates AS</span>
+        <nav class="footer__nav">
+          <a class="link meta" href="#hero" data-nav>Studio</a>
+          <a class="link meta" href="#projects" data-nav>Projects</a>
+          <a class="link meta" href="#contact" data-nav>Contact</a>
+          <a class="link meta" href="#">Instagram</a>
+          <a class="link meta" href="#">Journal</a>
+        </nav>
+        <span class="meta">Oslo &mdash; Vienna</span>
+      </div>
+    </footer>
+  </section>
+
+</main>
+
+<!-- ═══════════ BOOKING OVERLAY (hidden flow) ═══════════ -->
+<div class="booking" data-booking hidden aria-hidden="true">
+  <div class="booking__scrim" data-booking-scrim></div>
+  <div class="booking__panel" role="dialog" aria-modal="true" aria-labelledby="booking-title">
+    <div class="booking__inner" data-booking-inner></div>
+  </div>
+</div>
+
+<noscript>
+  <div class="shell" style="padding:8rem 0">
+    <h2 class="display" style="font-size:var(--t-2xl)">Three houses, available now.</h2>
+    <p class="lead">Lima Cabin, Telemark, Norway &mdash; &euro;2,450,000.
+      Maverick Cabin, Salzkammergut, Austria &mdash; &euro;8,900,000.
+      Puzzle Cabin, Gotland, Sweden &mdash; &euro;4,150,000.
+      Please write to acquisitions@boreal.estate to arrange a viewing.</p>
+  </div>
+</noscript>
+
+<script type="module" src="js/main.js"></script>
+<script>
+/* ES modules are blocked over file://, which would leave the page on the
+   preloader forever. If the modules have not started shortly after parse,
+   load the generated classic build instead. boot() is idempotent, so this
+   can never double-start. */
+(function () {
+  function fallback() {
+    if (window.__BOREAL_BOOTED__) return;
+    var s = document.createElement('script');
+    s.src = 'js/bundle.js';
+    document.head.appendChild(s);
+  }
+  function arm() { setTimeout(fallback, 600); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', arm, { once: true });
+  } else { arm(); }
+})();
+</script>
+</body>
+</html>
