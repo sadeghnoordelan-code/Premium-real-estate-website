@@ -1,7 +1,7 @@
 const {chromium,webkit}=require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/pc/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const fs=require('fs');
 const assert=require('assert/strict');
-const url=process.env.BOREAL_TEST_URL||'http://localhost:5184';
+const url=process.env.BOREAL_TEST_URL||'http://localhost:5173';
 const fallbackOnly=process.argv.includes('--fallback-only');
 const results=fallbackOnly ? JSON.parse(fs.readFileSync('verification/motion-results.json','utf8')).filter(x=>!String(x.test||'').includes('fallback')) : [];
 async function wait(page,selector){await page.waitForSelector(selector,{state:'attached',timeout:45000});}
@@ -17,7 +17,7 @@ async function gesture(page,mobile){
  });
 }
 async function run(browser,name,width,height,extra={}){
- const context=await browser.newContext({viewport:{width,height},isMobile:width<1024,hasTouch:width<1024,...extra});
+ const context=await browser.newContext({viewport:{width,height},isMobile:width<1024,hasTouch:width<1024,deviceScaleFactor:width===844?2:1,...extra});
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(url,{waitUntil:'domcontentloaded'});
@@ -26,7 +26,8 @@ async function run(browser,name,width,height,extra={}){
   const boot=await page.evaluate(()=>({mode:document.querySelector('#hero').dataset.mode,shown:window.__heroDiag.shown,overflow:document.documentElement.scrollWidth>innerWidth+1}));
   assert(boot.shown>=0,'hero has no presented frame'); assert(!boot.overflow,'horizontal overflow at boot');
   await gesture(page,width<1024);await page.waitForTimeout(450);
-  let diag=await page.evaluate(()=>({...window.__heroDiag}));assert(diag.current>0,'wheel does not advance film');assert(diag.done>0||diag.mode==='frames','seeks never complete');
+  let diag=await page.evaluate(()=>({...window.__heroDiag,time:document.querySelector('video').currentTime}));assert(diag.current>0,'wheel does not advance film');assert(diag.done>0||diag.mode==='frames','seeks never complete');
+  if(diag.mode==='video')assert(diag.time>0.03,'decoder did not present the requested frame');
   // The modal must receive wheel and keyboard input without advancing the film.
   if(width<1024){await page.locator('[data-burger]').click();await page.locator('.menu [data-open-booking]').click();}
   else await page.locator('.header [data-open-booking]').click();
@@ -35,6 +36,12 @@ async function run(browser,name,width,height,extra={}){
   await gesture(page,width<1024);await page.locator('input[name=name]').fill('Motion QA');await page.locator('input[name=name]').press('Space');
   assert.equal(await page.evaluate(()=>window.__heroDiag.target),before,'overlay input advanced hero');
   await page.keyboard.press('Escape');await page.waitForTimeout(700);
+  // Closing the dialog restores focus to its trigger; move focus back to
+  // the page before exercising the film's own keyboard navigation.
+  await page.evaluate(()=>document.activeElement?.blur());
+  await page.keyboard.press('End');await page.waitForTimeout(1200);
+  const film=await page.evaluate(()=>({time:document.querySelector('video').currentTime,duration:document.querySelector('video').duration,mode:window.__heroDiag.mode}));
+  if(film.mode==='video')assert(film.time>film.duration-0.1,'final decoded video frame is unavailable');
   await page.evaluate(()=>{document.querySelector('#hero').dispatchEvent(new CustomEvent('boreal:release'));window.scrollTo(0,document.querySelector('#projects').offsetTop);});
   await page.waitForTimeout(1800);
   for(let i=0;i<3;i++){
@@ -60,7 +67,7 @@ async function run(browser,name,width,height,extra={}){
  fs.mkdirSync('verification',{recursive:true});
  for(const [engine,name,options] of [[chromium,'chromium',{channel:'msedge'}],[webkit,'webkit',{}]]){
   let browser;try{browser=await engine.launch({headless:true,...options});}catch(e){results.push({browser:name,status:'unavailable',error:e.message});continue;}
-  for(const [w,h] of (fallbackOnly?[]:[[320,568],[390,844],[768,1024],[1024,768],[1440,900],[1920,1080],[2560,1440],[1366,480]]))await run(browser,name,w,h);
+  for(const [w,h] of (fallbackOnly?[]:[[320,568],[390,844],[768,1024],[1024,768],[1440,900],[1920,1080],[2560,1440],[1366,480],[844,390]]))await run(browser,name,w,h);
   if(!fallbackOnly)await run(browser,name,390,844,{reducedMotion:'reduce'});
   // Force the mobile frame renderer and ensure the entire film is reachable.
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const page=await context.newPage();

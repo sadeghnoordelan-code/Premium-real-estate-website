@@ -165,13 +165,14 @@
 /* ---------- mobile menu ---------- */
 .menu{
   position:fixed;inset:0;z-index:calc(var(--z-header) - 1);
+  overflow-y:auto;overscroll-behavior:contain;
   background:var(--navy-900);color:var(--ivory-100);
   clip-path:inset(0 0 100% 0);
   transition:clip-path var(--d-4) var(--ease-in-out);
 }
 .menu[data-open]{clip-path:inset(0 0 0 0);}
 .menu__inner{
-  height:100%;
+  height:auto;min-height:100%;gap:var(--s-5);
   padding:calc(var(--header-h) + var(--s-7)) var(--gutter) var(--s-7);
   display:flex;flex-direction:column;
 }

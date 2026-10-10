@@ -261,6 +261,5 @@ and the last frame of the mobile renderer after a forced video failure.
 Results and screenshots are saved in `verification/`. Set `PLAYWRIGHT_MODULE`
 to a different installed Playwright module path when running elsewhere.
 
-Production playback uses Vercel HTTP byte ranges. The development server serves
-whole video files locally; this is adequate for local functional checks but
-should not be used to benchmark production buffering.
+Production playback uses Vercel HTTP byte ranges. The development server also supports byte ranges, partial responses, and HEAD
+requests, so local video seek tests use the same delivery model.
