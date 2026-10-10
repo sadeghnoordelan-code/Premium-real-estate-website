@@ -355,35 +355,10 @@ const HERO_BEATS = [
 ];
 
 /* ===== hero.js ===== */
-/* ============================================================
-   BOREAL — Section 01: the scroll-scrubbed film
-   ------------------------------------------------------------
-   One persistent <video>, muted and permanently paused, whose
-   timeline is driven entirely by accumulated wheel input.
-
-     wheel -> normalised delta -> accumulated target frame
-           -> rAF-damped current frame -> gated video.currentTime
-
-   Three things were each independently fatal, all confirmed by
-   measurement against the real 391-frame film:
-
-   1. The source .MOV cannot be decoded by Chrome at all, and its GOP of
-      29 made every seek decode up to 29 frames. The film is re-encoded
-      all-intra (every frame a keyframe): seek latency 3-6ms vs 13-20ms
-      at GOP 3, worst-case 1 frame of jump while scrubbing slowly.
-
-   2. A plain src only ever buffers ~3.4s of a 13s paused video. The file
-      is fetched in full and played from a Blob, so the entire timeline is
-      resident in memory before scrubbing begins.
-
-   3. Assigning currentTime every frame aborts the in-flight seek — 40
-      assignments produced 1 presented frame. Seeks are gated: never more
-      than one in flight, always targeting the newest requested time.
-      That yields ~40 completed seeks/second, above the film's 30fps.
-
-   If the video cannot be prepared, the renderer falls back to a
-   pre-decoded still sequence driven by exactly the same input model.
-   ============================================================ */
+/* BOREAL — scroll-driven film.
+   Start from a range-enabled video URL; keep a poster visible during loading.
+   Wheel, touch and keyboard input share one damped timeline, with one seek
+   in flight. Decode failures use a correctly scaled still sequence. */
 
 
 
@@ -427,6 +402,7 @@ function pickVideo() {
 const FRAME_TIERS = { medium: 'w1100', small: 'w720' };
 const SKELETON_STRIDE = 8;
 const MAX_INFLIGHT = 8;
+const CACHE_RADIUS = 24;
 
 class FrameSequence {
   constructor(dir, count) {
@@ -446,13 +422,17 @@ class FrameSequence {
     const p = new Promise((resolve) => {
       const img = new Image();
       img.decoding = 'async';
+      let settled = false;
+      const timer = setTimeout(() => done(false), 10000);
       const done = (ok) => {
+        if (settled) return; settled = true; clearTimeout(timer);
+        img.onload = null; img.onerror = null;
         this.inflight--; this.pending[i] = null;
         if (ok) { this.frames[i] = img; this.state[i] = 2; this.loaded++; this._cache.want = -1; }
         else this.state[i] = 3;
         resolve(ok);
       };
-      img.onload = () => (img.decode ? img.decode().then(() => done(true)).catch(() => done(true)) : done(true));
+      img.onload = () => done(true);
       img.onerror = () => done(false);
       img.src = this.url(i);
     });
@@ -473,12 +453,19 @@ class FrameSequence {
     ]);
   }
   pump(center) {
-    if (this.loaded >= this.count) return;
+    const centerFrame = Math.round(clamp(center, 0, this.count - 1));
+    // Keep sparse anchor frames plus nearby detail, rather than decoding
+    // the entire film into hundreds of MB while the visitor is idle.
+    for (let i = 0; i < this.count; i++) {
+      if (this.state[i] === 2 && Math.abs(i - centerFrame) > CACHE_RADIUS && i % SKELETON_STRIDE !== 0 && i !== this.count - 1) {
+        this.frames[i] = null; this.state[i] = 0; this.loaded--; this._cache.want = -1;
+      }
+    }
     let guard = 0;
     while (this.inflight < MAX_INFLIGHT && guard++ < 4) {
       const c = Math.round(clamp(center, 0, this.count - 1));
       let found = -1;
-      for (let d = 0; d < this.count; d++) {
+      for (let d = 0; d <= CACHE_RADIUS; d++) {
         if (c + d < this.count && this.state[c + d] === 0) { found = c + d; break; }
         if (c - d >= 0 && this.state[c - d] === 0) { found = c - d; break; }
       }
@@ -509,7 +496,6 @@ function initHero({ onProgress } = {}) {
   const cue = qs('.hero__cue');
   if (!section || !video) return { ready: Promise.resolve() };
 
-  const reduced = prefersReducedMotion();
   const root = document.documentElement;
 
   /* ---------- copy beats ---------- */
@@ -547,12 +533,13 @@ function initHero({ onProgress } = {}) {
      RENDERER A — the video element
      ============================================================ */
   let duration = FRAMES / FPS;
-  let seeking = false, wantTime = null;
+  let seeking = false, wantTime = null, seekStarted = 0;
 
   function flushSeek() {
     if (wantTime == null) { seeking = false; return; }
     const t = wantTime; wantTime = null;
-    seeking = true;
+    if (Math.abs(video.currentTime - t) < 0.001) { seeking = false; return; }
+    seeking = true; seekStarted = performance.now();
     DIAG.seeks++;
     try { video.currentTime = t; } catch { seeking = false; }
   }
@@ -574,7 +561,7 @@ function initHero({ onProgress } = {}) {
   /* ============================================================
      RENDERER B — pre-decoded stills (only if the video cannot run)
      ============================================================ */
-  let ctx = null, cw = 0, ch = 0, lastDrawn = -1;
+  let ctx = null, cw = 0, ch = 0, lastDrawn = -1, lastLoaded = -1;
   function sizeCanvas() {
     const dpr = view.dpr;
     cw = Math.round(view.w * dpr); ch = Math.round(view.h * dpr);
@@ -623,10 +610,11 @@ function initHero({ onProgress } = {}) {
     locked = v;
     root.toggleAttribute('data-hero-lock', v);
   };
-  if (locked) root.setAttribute('data-hero-lock', '');
+  if (locked) root.removeAttribute('data-hero-lock');
   else { target = LAST; current = LAST; }   // arrived past the hero
 
   function onWheel(e) {
+    if (!live || e.ctrlKey || document.body.hasAttribute('data-locked') || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     const down = e.deltaY > 0;
 
     if (!locked) {
@@ -644,9 +632,9 @@ function initHero({ onProgress } = {}) {
 
   /* touch: drag up runs the film forward */
   let touchY = null;
-  window.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener('touchstart', (e) => { touchY = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
   window.addEventListener('touchmove', (e) => {
-    if (touchY == null) return;
+    if (e.touches.length !== 1 || touchY == null || !live || document.body.hasAttribute('data-locked')) return;
     const y = e.touches[0].clientY;
     const d = (touchY - y) * 2.4;
     touchY = y;
@@ -656,9 +644,12 @@ function initHero({ onProgress } = {}) {
     advance(clamp(d, -FEEL.clampEvent, FEEL.clampEvent));
   }, { passive: false });
 
+  window.addEventListener('touchend', () => { touchY = null; }, { passive: true });
+  window.addEventListener('touchcancel', () => { touchY = null; }, { passive: true });
+
   /* keyboard */
   window.addEventListener('keydown', (e) => {
-    if (!locked) return;
+    if (!locked || !live || document.body.hasAttribute('data-locked') || e.target.closest?.('input,textarea,select,button,a,[contenteditable]')) return;
     if (e.key === 'End') { e.preventDefault(); target = LAST; setLock(false); return; }
     if (e.key === 'Home') { e.preventDefault(); target = 0; return; }
     const step = { ArrowDown: 6, ArrowUp: -6, PageDown: 48, PageUp: -48, ' ': 48 }[e.key];
@@ -698,10 +689,17 @@ function initHero({ onProgress } = {}) {
     if (!live) { updateCopy(current / LAST); updateHud(current / LAST); return; }
 
     if (mode === 'video') {
+      // A stalled decoder must not permanently block later requests.
+      if (seeking && performance.now() - seekStarted > 1500) seeking = false;
       showFrameVideo(current);
+      if (!seeking && wantTime != null) flushSeek();
     } else if (seq) {
-      seq.pump(current);
-      if (Math.abs(current - lastDrawn) > 0.008) showFrameCanvas(current);
+      const frame = current / LAST * (seq.count - 1);
+      seq.pump(frame);
+      // New images can arrive even while the visitor has stopped scrolling.
+      if (Math.abs(frame - lastDrawn) > 0.008 || seq.loaded !== lastLoaded) {
+        showFrameCanvas(frame); lastLoaded = seq.loaded;
+      }
     }
 
     const p = current / LAST;
@@ -744,60 +742,51 @@ function initHero({ onProgress } = {}) {
   }
 
   /* ============================================================
-     BOOT — full preload, then hand over
+     BOOT — first decoded frame, then hand over
      ============================================================ */
-  async function preloadVideo(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('http ' + res.status);
-    const total = Number(res.headers.get('content-length')) || 0;
-    if (!res.body) { onProgress?.(1); return URL.createObjectURL(await res.blob()); }
-    const reader = res.body.getReader();
-    const chunks = [];
-    let got = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value); got += value.length;
-      if (total) onProgress?.(clamp(got / total, 0, 1));
-    }
-    onProgress?.(1);
-    return URL.createObjectURL(new Blob(chunks, { type: 'video/mp4' }));
-  }
-
   async function startVideo() {
-    const file = pickVideo();
-    /* fetch() is blocked on file://, and a local file needs no buffering
-       strategy anyway — hand the path straight to the element. */
-    const direct = location.protocol === 'file:';
-    const url = direct ? file : await preloadVideo(file);
-    if (direct) onProgress?.(1);
-    video.src = url;
+    // Vercel supports byte ranges: begin rendering the first frame instead
+    // of waiting for an 8-19 MB file to finish downloading into memory.
     video.muted = true;
-    await new Promise((res, rej) => {
-      if (video.readyState >= 2) { res(); return; }
-      video.addEventListener('loadeddata', res, { once: true });
-      video.addEventListener('canplay', res, { once: true });
-      video.addEventListener('error', () => rej(new Error('decode')), { once: true });
-      setTimeout(() => (video.readyState >= 2 ? res() : rej(new Error('timeout'))), 20000);
+    video.playsInline = true;
+    await new Promise((resolve, reject) => {
+      let timer;
+      const clean = () => {
+        clearTimeout(timer);
+        video.removeEventListener('loadeddata', loaded);
+        video.removeEventListener('error', failed);
+      };
+      const loaded = () => { clean(); resolve(); };
+      const failed = () => { clean(); reject(new Error('video unavailable')); };
+      video.addEventListener('loadeddata', loaded);
+      video.addEventListener('error', failed);
+      timer = setTimeout(failed, 8000);
+      video.src = pickVideo();
+      video.load();
     });
-    if (!video.duration || !isFinite(video.duration)) throw new Error('no duration');
+    if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error('no duration');
     video.pause();
     duration = video.duration;
     live = true;
     lastSent = -1;
-    showFrameVideo(0);
+    onProgress?.(1);
+    showFrameVideo(current);
   }
 
   async function startFrames() {
+    video.pause(); video.removeAttribute('src'); video.load();
+    seeking = false; wantTime = null;
     mode = 'frames'; DIAG.mode = 'frames';
     section.setAttribute('data-fallback', '');
     const dir = isTouch() && window.innerWidth < 900 ? FRAME_TIERS.small : FRAME_TIERS.medium;
     seq = new FrameSequence(dir, dir === FRAME_TIERS.small ? 196 : 391);
     ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) throw new Error('canvas unavailable');
     sizeCanvas();
     await seq.loadSkeleton(onProgress);
+    if (!seq.loaded) throw new Error('no fallback frames');
     live = true;
-    showFrameCanvas(0);
+    showFrameCanvas(current / LAST * (seq.count - 1));
   }
 
   const ready = (async () => {
@@ -805,8 +794,10 @@ function initHero({ onProgress } = {}) {
       await startVideo();
     } catch (err) {
       console.warn('[boreal] video scrubbing unavailable, using frame sequence:', err.message);
-      try { await startFrames(); } catch (e2) { console.error('[boreal] hero failed:', e2); }
+      try { await startFrames(); } catch (e2) { console.error('[boreal] hero failed:', e2); setLock(false); }
     }
+    if (live && locked && window.scrollY <= 1) root.setAttribute('data-hero-lock', '');
+    else if (window.scrollY > 1) setLock(false);
     section.setAttribute('data-ready', '');
     section.setAttribute('data-mode', mode);
   })();
@@ -906,7 +897,7 @@ function initProjects() {
         <div class="pdisc-wrap">
           <figure class="pdisc">
             <span class="pdisc__fill" aria-hidden="true"></span>
-            ${plate(p.images.main, 0, `${p.name} — ${p.tagline}`, i === 0)}
+            ${plate(p.images.main, 0, `${p.name} — ${p.tagline}`, true)}
             ${g.map((im, k) => plate(im.f, k + 1, `${p.name} — ${im.c}`, false)).join('')}
           </figure>
           <span class="pdisc__leader" aria-hidden="true"></span>
@@ -938,9 +929,13 @@ function initProjects() {
     const layers = qsa('.pdisc__img', node);
     const thumbs = qsa('.pthumb', node);
     const cap = node.querySelector('[data-cap]');
-    thumbs.forEach((t) => t.addEventListener('click', (e) => {
+    let photoRequest = 0;
+    thumbs.forEach((t) => t.addEventListener('click', async (e) => {
       e.stopPropagation();
       const k = Number(t.dataset.thumb);
+      const request = ++photoRequest;
+      try { await layers[k].decode(); } catch { return; }
+      if (request !== photoRequest) return;
       thumbs.forEach((o) => o.toggleAttribute('data-active', o === t));
       layers.forEach((l) => l.toggleAttribute('data-on', Number(l.dataset.layer) === k));
       cap.textContent = k === 0
@@ -948,7 +943,7 @@ function initProjects() {
         : g[k - 1].c;
     }));
 
-    return { data: p, node, img: node.querySelector('.pdisc-wrap'), local: 99 };
+    return { data: p, node, layers, revealAt: null, img: node.querySelector('.pdisc-wrap'), local: 99 };
   });
 
   /* ---------- the panel (right third, navy) ---------- */
@@ -1014,6 +1009,7 @@ function initProjects() {
   /* ---------- navigation ---------- */
   function goTo(i) {
     const k = clamp(i, 0, N - 1);
+    qs('#hero')?.dispatchEvent(new CustomEvent('boreal:release'));
     if (isStacked()) {
       const r = shots[k].node.getBoundingClientRect();
       scrollToY(window.scrollY + r.top - 64, 1050);
@@ -1026,7 +1022,7 @@ function initProjects() {
   qs('[data-rail-next]')?.addEventListener('click', () => goTo(active + 1));
 
   window.addEventListener('keydown', (e) => {
-    if (!pinned || isStacked()) return;
+    if (!pinned || isStacked() || document.body.hasAttribute('data-locked') || e.target.closest?.('input,textarea,select,[contenteditable]')) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); goTo(active + 1); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(active - 1); }
   });
@@ -1037,14 +1033,18 @@ function initProjects() {
   function setActive(a) {
     if (a === active) return;
     active = a;
-    indexBtns.forEach((b, i) => b.toggleAttribute('data-active', i === a));
+    indexBtns.forEach((b, i) => { b.toggleAttribute('data-active', i === a); b.setAttribute('aria-current', i === a ? 'true' : 'false'); });
     headBtns.forEach((b, i) => b.toggleAttribute('data-active', i === a));
-    cards.forEach((c, i) => c.node.toggleAttribute('data-active', i === a));
+    cards.forEach((c, i) => {
+      c.node.toggleAttribute('data-active', i === a);
+      c.node.inert = !isStacked() && i !== a;
+    });
     shots.forEach((s, i) => {
       s.node.toggleAttribute('data-active', i === a);
       /* the circle grows out of the white disc each time a project takes
          the stage, so the reveal is tied to activity, not to first paint */
-      s.node.toggleAttribute('data-revealed', i === a);
+      if (!isStacked()) { s.node.removeAttribute('data-revealed'); s.revealAt = null; }
+      else s.node.setAttribute('data-revealed', '');
       /* only the project on stage is reachable by keyboard: the others are
          translated off the plate and cannot be scrolled to */
       if (!isStacked()) s.node.inert = i !== a;
@@ -1089,6 +1089,12 @@ function initProjects() {
 
     for (let i = 0; i < N; i++) {
       const s = shots[i];
+      if (i === active && rect.top < view.h * 0.8 && s.layers[0].complete && s.layers[0].naturalWidth) {
+        if (s.revealAt == null) { s.revealAt = performance.now(); s.node.setAttribute('data-revealed', ''); }
+        const t = reduced ? 1 : clamp((performance.now() - s.revealAt - 200) / 1200);
+        const sweep = (360 * (1 - Math.pow(1 - t, 3))).toFixed(2) + 'deg';
+        s.layers.forEach(l => l.style.setProperty('--sweep', sweep));
+      }
       const local = i - head;            // 0 = on stage, +1 = next, -1 = previous
       const a = Math.abs(local);
 
@@ -1124,13 +1130,19 @@ function initProjects() {
       s.node.style.setProperty('--i', i);
       s.img.style.cssText = '';
       s.node.inert = false;
-      s.local = 99;
+      s.local = 99; s.revealAt = null;
+      s.layers.forEach(l => l.style.removeProperty('--sweep'));
+      s.node.toggleAttribute('data-revealed', isStacked());
     });
     cards.forEach((c, i) => {
+      c.node.inert = !isStacked() && i !== active;
       c.node.style.cssText = '';
       c.node.style.setProperty('--i', i);
     });
-    if (!isStacked()) head = pinProgress(section) * (N - 1);
+    if (!isStacked()) {
+      head = pinProgress(section) * (N - 1);
+      shots.forEach((s, i) => { s.node.inert = i !== active; });
+    }
   };
   mq.addEventListener('change', clearInline);
 
@@ -1281,7 +1293,7 @@ function initBooking({ projects } = {}) {
           <label class="fld">
             <span class="fld__k label">Notes <span class="fld__opt">optional</span></span>
             <textarea class="fld__i" name="notes" rows="2"
-              placeholder="Anything we should know before the visit">${state.fields.notes}</textarea>
+              placeholder="Anything we should know before the visit">${escapeHtml(state.fields.notes)}</textarea>
           </label>
         </form>
       </div>
@@ -1314,7 +1326,7 @@ function initBooking({ projects } = {}) {
           </button>
           <p class="bsummary__note meta" data-form-note>
             ${canConfirm()
-              ? 'No payment is taken. We confirm by email within one working day.'
+              ? 'No payment is taken. This form prepares viewing details locally.'
               : 'Choose a date and time, and add your name and email.'}
           </p>
         </div>
@@ -1401,11 +1413,11 @@ function initBooking({ projects } = {}) {
       <div class="bdone__mark" aria-hidden="true">
         <svg viewBox="0 0 64 64"><path d="M14 33.5 27 46l23-28"/></svg>
       </div>
-      <p class="label">Confirmed</p>
-      <h2 class="bdone__title display">Your viewing is reserved.</h2>
+      <p class="label">Prepared</p>
+      <h2 class="bdone__title display">Your viewing details are ready.</h2>
       <p class="bdone__lead lead">
-        We have sent the details to <strong>${escapeHtml(c.email)}</strong>.
-        A member of the studio will meet you on site.
+        These details are saved in this browser session. To arrange the viewing, email acquisitions@boreal.estate.
+        The studio must confirm availability before your visit.
       </p>
       <dl class="bdone__list">
         <div><dt class="meta">Reference</dt><dd class="bdone__ref">${c.ref}</dd></div>
@@ -1645,15 +1657,13 @@ function initHeader() {
 
   let dark = null, solid = null, navOn = null;
 
-  const contact = qs('#contact');
 
   onTick(() => {
     const hb = hero ? hero.getBoundingClientRect().bottom : 0;
     const overFilm = hb > 96;
 
-    /* the film and the collection are dark; the contact section is not */
-    const overContact = contact ? contact.getBoundingClientRect().top <= 96 : false;
-    const wantDark = !overContact;
+    /* All three sections use navy backgrounds and light header text. */
+    const wantDark = true;
     if (wantDark !== dark) {
       dark = wantDark;
       if (dark) header.setAttribute('data-theme', 'dark');
@@ -1818,7 +1828,7 @@ function boot() {
   const hero = safe('hero', () => initHero({ onProgress: (p) => pre.set(p * 0.94) }));
 
   const ready = hero?.ready ?? Promise.resolve();
-  const cap = new Promise((r) => setTimeout(r, 9000));   // never trap the user
+  const cap = new Promise((r) => setTimeout(r, 1500));   // never trap the user
   Promise.race([ready, cap]).then(() => pre.finish());
 }
 

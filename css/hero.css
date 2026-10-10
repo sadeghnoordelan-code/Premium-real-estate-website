@@ -169,3 +169,6 @@ html:not([data-booted]) .hero-beat__body{ opacity:0; }
   .hero__cue-line::after{ animation:none; }
   .hero__video,.hero__canvas{ transform:none; }
 }
+
+/* An immediate poster remains visible while the first video frame loads. */
+.hero__stage{background:var(--navy-900) url('../assets/video/poster.webp') center / cover no-repeat;}

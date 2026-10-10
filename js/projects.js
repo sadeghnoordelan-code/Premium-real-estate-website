@@ -92,7 +92,7 @@ export function initProjects() {
         <div class="pdisc-wrap">
           <figure class="pdisc">
             <span class="pdisc__fill" aria-hidden="true"></span>
-            ${plate(p.images.main, 0, `${p.name} — ${p.tagline}`, i === 0)}
+            ${plate(p.images.main, 0, `${p.name} — ${p.tagline}`, true)}
             ${g.map((im, k) => plate(im.f, k + 1, `${p.name} — ${im.c}`, false)).join('')}
           </figure>
           <span class="pdisc__leader" aria-hidden="true"></span>
@@ -124,9 +124,13 @@ export function initProjects() {
     const layers = qsa('.pdisc__img', node);
     const thumbs = qsa('.pthumb', node);
     const cap = node.querySelector('[data-cap]');
-    thumbs.forEach((t) => t.addEventListener('click', (e) => {
+    let photoRequest = 0;
+    thumbs.forEach((t) => t.addEventListener('click', async (e) => {
       e.stopPropagation();
       const k = Number(t.dataset.thumb);
+      const request = ++photoRequest;
+      try { await layers[k].decode(); } catch { return; }
+      if (request !== photoRequest) return;
       thumbs.forEach((o) => o.toggleAttribute('data-active', o === t));
       layers.forEach((l) => l.toggleAttribute('data-on', Number(l.dataset.layer) === k));
       cap.textContent = k === 0
@@ -134,7 +138,7 @@ export function initProjects() {
         : g[k - 1].c;
     }));
 
-    return { data: p, node, img: node.querySelector('.pdisc-wrap'), local: 99 };
+    return { data: p, node, layers, revealAt: null, img: node.querySelector('.pdisc-wrap'), local: 99 };
   });
 
   /* ---------- the panel (right third, navy) ---------- */
@@ -200,6 +204,7 @@ export function initProjects() {
   /* ---------- navigation ---------- */
   function goTo(i) {
     const k = clamp(i, 0, N - 1);
+    qs('#hero')?.dispatchEvent(new CustomEvent('boreal:release'));
     if (isStacked()) {
       const r = shots[k].node.getBoundingClientRect();
       scrollToY(window.scrollY + r.top - 64, 1050);
@@ -212,7 +217,7 @@ export function initProjects() {
   qs('[data-rail-next]')?.addEventListener('click', () => goTo(active + 1));
 
   window.addEventListener('keydown', (e) => {
-    if (!pinned || isStacked()) return;
+    if (!pinned || isStacked() || document.body.hasAttribute('data-locked') || e.target.closest?.('input,textarea,select,[contenteditable]')) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); goTo(active + 1); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(active - 1); }
   });
@@ -223,14 +228,18 @@ export function initProjects() {
   function setActive(a) {
     if (a === active) return;
     active = a;
-    indexBtns.forEach((b, i) => b.toggleAttribute('data-active', i === a));
+    indexBtns.forEach((b, i) => { b.toggleAttribute('data-active', i === a); b.setAttribute('aria-current', i === a ? 'true' : 'false'); });
     headBtns.forEach((b, i) => b.toggleAttribute('data-active', i === a));
-    cards.forEach((c, i) => c.node.toggleAttribute('data-active', i === a));
+    cards.forEach((c, i) => {
+      c.node.toggleAttribute('data-active', i === a);
+      c.node.inert = !isStacked() && i !== a;
+    });
     shots.forEach((s, i) => {
       s.node.toggleAttribute('data-active', i === a);
       /* the circle grows out of the white disc each time a project takes
          the stage, so the reveal is tied to activity, not to first paint */
-      s.node.toggleAttribute('data-revealed', i === a);
+      if (!isStacked()) { s.node.removeAttribute('data-revealed'); s.revealAt = null; }
+      else s.node.setAttribute('data-revealed', '');
       /* only the project on stage is reachable by keyboard: the others are
          translated off the plate and cannot be scrolled to */
       if (!isStacked()) s.node.inert = i !== a;
@@ -275,6 +284,12 @@ export function initProjects() {
 
     for (let i = 0; i < N; i++) {
       const s = shots[i];
+      if (i === active && rect.top < view.h * 0.8 && s.layers[0].complete && s.layers[0].naturalWidth) {
+        if (s.revealAt == null) { s.revealAt = performance.now(); s.node.setAttribute('data-revealed', ''); }
+        const t = reduced ? 1 : clamp((performance.now() - s.revealAt - 200) / 1200);
+        const sweep = (360 * (1 - Math.pow(1 - t, 3))).toFixed(2) + 'deg';
+        s.layers.forEach(l => l.style.setProperty('--sweep', sweep));
+      }
       const local = i - head;            // 0 = on stage, +1 = next, -1 = previous
       const a = Math.abs(local);
 
@@ -310,13 +325,19 @@ export function initProjects() {
       s.node.style.setProperty('--i', i);
       s.img.style.cssText = '';
       s.node.inert = false;
-      s.local = 99;
+      s.local = 99; s.revealAt = null;
+      s.layers.forEach(l => l.style.removeProperty('--sweep'));
+      s.node.toggleAttribute('data-revealed', isStacked());
     });
     cards.forEach((c, i) => {
+      c.node.inert = !isStacked() && i !== active;
       c.node.style.cssText = '';
       c.node.style.setProperty('--i', i);
     });
-    if (!isStacked()) head = pinProgress(section) * (N - 1);
+    if (!isStacked()) {
+      head = pinProgress(section) * (N - 1);
+      shots.forEach((s, i) => { s.node.inert = i !== active; });
+    }
   };
   mq.addEventListener('change', clearInline);
 

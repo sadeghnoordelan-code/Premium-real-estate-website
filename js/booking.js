@@ -138,7 +138,7 @@ export function initBooking({ projects } = {}) {
           <label class="fld">
             <span class="fld__k label">Notes <span class="fld__opt">optional</span></span>
             <textarea class="fld__i" name="notes" rows="2"
-              placeholder="Anything we should know before the visit">${state.fields.notes}</textarea>
+              placeholder="Anything we should know before the visit">${escapeHtml(state.fields.notes)}</textarea>
           </label>
         </form>
       </div>
@@ -171,7 +171,7 @@ export function initBooking({ projects } = {}) {
           </button>
           <p class="bsummary__note meta" data-form-note>
             ${canConfirm()
-              ? 'No payment is taken. We confirm by email within one working day.'
+              ? 'No payment is taken. This form prepares viewing details locally.'
               : 'Choose a date and time, and add your name and email.'}
           </p>
         </div>
@@ -258,11 +258,11 @@ export function initBooking({ projects } = {}) {
       <div class="bdone__mark" aria-hidden="true">
         <svg viewBox="0 0 64 64"><path d="M14 33.5 27 46l23-28"/></svg>
       </div>
-      <p class="label">Confirmed</p>
-      <h2 class="bdone__title display">Your viewing is reserved.</h2>
+      <p class="label">Prepared</p>
+      <h2 class="bdone__title display">Your viewing details are ready.</h2>
       <p class="bdone__lead lead">
-        We have sent the details to <strong>${escapeHtml(c.email)}</strong>.
-        A member of the studio will meet you on site.
+        These details are saved in this browser session. To arrange the viewing, email acquisitions@boreal.estate.
+        The studio must confirm availability before your visit.
       </p>
       <dl class="bdone__list">
         <div><dt class="meta">Reference</dt><dd class="bdone__ref">${c.ref}</dd></div>
