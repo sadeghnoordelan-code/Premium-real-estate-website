@@ -61,15 +61,13 @@ function initHeader() {
 
   let dark = null, solid = null, navOn = null;
 
-  const contact = qs('#contact');
 
   onTick(() => {
     const hb = hero ? hero.getBoundingClientRect().bottom : 0;
     const overFilm = hb > 96;
 
-    /* the film and the collection are dark; the contact section is not */
-    const overContact = contact ? contact.getBoundingClientRect().top <= 96 : false;
-    const wantDark = !overContact;
+    /* All three sections use navy backgrounds and light header text. */
+    const wantDark = true;
     if (wantDark !== dark) {
       dark = wantDark;
       if (dark) header.setAttribute('data-theme', 'dark');
@@ -234,7 +232,7 @@ function boot() {
   const hero = safe('hero', () => initHero({ onProgress: (p) => pre.set(p * 0.94) }));
 
   const ready = hero?.ready ?? Promise.resolve();
-  const cap = new Promise((r) => setTimeout(r, 9000));   // never trap the user
+  const cap = new Promise((r) => setTimeout(r, 1500));   // never trap the user
   Promise.race([ready, cap]).then(() => pre.finish());
 }
 

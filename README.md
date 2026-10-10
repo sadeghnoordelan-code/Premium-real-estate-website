@@ -37,7 +37,7 @@ fourth section. `PROJECT → DATE → TIME → DETAILS → CONFIRMATION`.
 
 ## How the hero actually works
 
-The hero is one persistent `<video>` — muted, permanently paused, no controls —
+The hero is one persistent `<video>` — muted, paused while scrubbing, no controls —
 whose timeline is driven entirely by accumulated wheel input:
 
 ```
@@ -57,10 +57,10 @@ measurement against the real 391-frame film:
    meant every seek had to decode up to 29 frames. The film is re-encoded
    **all-intra** — every frame a keyframe. Measured seek latency 3–6ms, against
    13–20ms at GOP 3 and 7–17ms at GOP 6.
-2. **A plain `src` only ever buffers ~3.4s of a 13s paused video.** The file is
-   fetched in full and played from a Blob, so the whole timeline is resident
-   before scrubbing begins. (Over `file://`, where `fetch` is blocked, the path is
-   handed to the element directly — a local file needs no buffering strategy.)
+2. **Waiting for a full 8–19 MB Blob delayed the first visible frame.**
+   The video now uses a direct URL with HTTP byte-range requests (verified on
+   Vercel), so it can render before the entire film has downloaded. A poster
+   is visible immediately, and decode preparation is capped at eight seconds.
 3. **Assigning `currentTime` every frame aborts the in-flight seek.** 40
    assignments produced *one* presented frame. Seeks are gated: never more than
    one in flight, always targeting the newest requested time.
@@ -111,7 +111,7 @@ viewport width, DPR and `navigator.connection`:
 | `hero-md.mp4` | 1280 | 13.2 MB |
 | `hero-sm.mp4` | 960 | 8.1 MB |
 
-Measured cold load on the 1280 tier: **interactive in ~1.1s**, fully buffered.
+Measured cold load on the 1280 tier: **interactive without waiting for a full download**.
 
 ---
 
@@ -248,5 +248,18 @@ competing loops.
    written to be plausible, not factual. The geography is real: the coordinates,
    places and Köppen classifications resolve correctly. Replace before publishing.
 
-The reservation flow has no backend — confirmations are generated locally. Wiring
+The reservation flow has no backend — viewing details are generated locally, and the interface explicitly says that no email was sent. Wiring
 `confirm()` in `js/booking.js` to a real endpoint is the only change needed.
+
+## Motion regression verification
+
+Run `node tools/verify-motion.cjs` with the bundled Playwright package installed
+at the path in that script. `BOREAL_TEST_URL` can target the production URL.
+The suite checks Chromium and WebKit at eight viewport sizes, reduced motion,
+modal input isolation, project navigation, image swaps, breakpoint changes,
+and the last frame of the mobile renderer after a forced video failure.
+Results and screenshots are saved in `verification/`. Set `PLAYWRIGHT_MODULE`
+to a different installed Playwright module path when running elsewhere.
+
+Production playback uses Vercel HTTP byte ranges. The development server also supports byte ranges, partial responses, and HEAD
+requests, so local video seek tests use the same delivery model.

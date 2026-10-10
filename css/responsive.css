@@ -238,3 +238,13 @@
   }
   .collindex__b:hover:not([data-active]) .collindex__rule::after{ transform:scaleX(0); }
 }
+
+@media (max-width:1023px){
+ .pshot .pdisc__img[data-on]{-webkit-mask-image:none;mask-image:none;}
+ .pshot{aspect-ratio:auto;}
+ .pshot__coords{flex-wrap:wrap;justify-content:center;}
+}
+/* At high zoom or in a very short desktop window, let cards scroll. */
+@media (min-width:1024px){
+ .pcard{overflow-y:auto;overscroll-behavior:contain;padding-bottom:1rem;}
+}

@@ -80,7 +80,7 @@
   --sweep:0deg;
   -webkit-mask-image:conic-gradient(from -45deg,#000 0deg,#000 var(--sweep),transparent var(--sweep));
           mask-image:conic-gradient(from -45deg,#000 0deg,#000 var(--sweep),transparent var(--sweep));
-  transition:opacity 420ms var(--ease-out), --sweep 1200ms var(--ease-out);
+  transition:opacity 420ms var(--ease-out);
 }
 /* the sweep only runs for the photograph currently chosen */
 .pshot[data-revealed] .pdisc__img[data-on]{
@@ -423,36 +423,11 @@
 }
 .pnav__star{ font-size:0.4em; color:rgba(247,244,238,.5); }
 
-/* the numbered index — the third way into a project */
-.collindex{
-  flex:0 0 auto;
-  display:flex; gap:var(--s-4);
-  padding-top:var(--s-5);
-  margin-top:var(--s-5);
-  border-top:1px solid rgba(247,244,238,.16);
+
+/* Clip the photograph to the disc even on Safari's compositing path. */
+.pdisc{clip-path:circle(50%); isolation:isolate;}
+.pnav__btn{min-height:44px;}
+.collindex__b{min-height:44px;}
+@media (prefers-reduced-motion:reduce){
+ .pdisc__img[data-on]{-webkit-mask-image:none;mask-image:none;}
 }
-.collindex__b{
-  position:relative; flex:1 1 0; min-width:0;
-  display:flex; flex-direction:column; align-items:flex-start; gap:0.3em;
-  padding-bottom:var(--s-3);
-  font-family:var(--f-mono); font-size:var(--t-xs);
-  letter-spacing:0.12em; text-transform:uppercase;
-  color:rgba(247,244,238,.46);
-  transition:color var(--d-2) var(--ease-out);
-}
-.collindex__name{ font-size:10px; letter-spacing:0.14em; }
-.collindex__rule{
-  position:absolute; left:0; right:0; bottom:0;
-  height:1px; background:rgba(247,244,238,.2);
-  overflow:hidden;
-}
-.collindex__rule::after{
-  content:''; position:absolute; inset:0;
-  background:var(--ivory-050);
-  transform:scaleX(0); transform-origin:left center;
-  transition:transform var(--d-4) var(--ease-out);
-}
-.collindex__b:hover,.collindex__b:focus-visible{ color:rgba(247,244,238,.9); }
-.collindex__b:hover .collindex__rule::after{ transform:scaleX(0.4); }
-.collindex__b[data-active]{ color:var(--ivory-050); }
-.collindex__b[data-active] .collindex__rule::after{ transform:scaleX(1); }

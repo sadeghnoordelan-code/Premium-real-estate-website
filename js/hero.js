@@ -1,32 +1,7 @@
-/* ============================================================
-   BOREAL — Section 01: the scroll-scrubbed film
-   ------------------------------------------------------------
-   One persistent <video>, muted and permanently paused, whose
-   timeline is driven entirely by accumulated wheel input.
-
-     wheel -> normalised delta -> accumulated target frame
-           -> rAF-damped current frame -> gated video.currentTime
-
-   Three things were each independently fatal, all confirmed by
-   measurement against the real 391-frame film:
-
-   1. The source .MOV cannot be decoded by Chrome at all, and its GOP of
-      29 made every seek decode up to 29 frames. The film is re-encoded
-      all-intra (every frame a keyframe): seek latency 3-6ms vs 13-20ms
-      at GOP 3, worst-case 1 frame of jump while scrubbing slowly.
-
-   2. A plain src only ever buffers ~3.4s of a 13s paused video. The file
-      is fetched in full and played from a Blob, so the entire timeline is
-      resident in memory before scrubbing begins.
-
-   3. Assigning currentTime every frame aborts the in-flight seek — 40
-      assignments produced 1 presented frame. Seeks are gated: never more
-      than one in flight, always targeting the newest requested time.
-      That yields ~40 completed seeks/second, above the film's 30fps.
-
-   If the video cannot be prepared, the renderer falls back to a
-   pre-decoded still sequence driven by exactly the same input model.
-   ============================================================ */
+/* BOREAL — scroll-driven film.
+   Start from a range-enabled video URL; keep a poster visible during loading.
+   Wheel, touch and keyboard input share one damped timeline, with one seek
+   in flight. Decode failures use a correctly scaled still sequence. */
 
 import {
   clamp, inv, lerp, damp, smoothstep, onTick, onResize, view,
@@ -73,6 +48,7 @@ function pickVideo() {
 const FRAME_TIERS = { medium: 'w1100', small: 'w720' };
 const SKELETON_STRIDE = 8;
 const MAX_INFLIGHT = 8;
+const CACHE_RADIUS = 24;
 
 class FrameSequence {
   constructor(dir, count) {
@@ -92,13 +68,17 @@ class FrameSequence {
     const p = new Promise((resolve) => {
       const img = new Image();
       img.decoding = 'async';
+      let settled = false;
+      const timer = setTimeout(() => done(false), 10000);
       const done = (ok) => {
+        if (settled) return; settled = true; clearTimeout(timer);
+        img.onload = null; img.onerror = null;
         this.inflight--; this.pending[i] = null;
         if (ok) { this.frames[i] = img; this.state[i] = 2; this.loaded++; this._cache.want = -1; }
         else this.state[i] = 3;
         resolve(ok);
       };
-      img.onload = () => (img.decode ? img.decode().then(() => done(true)).catch(() => done(true)) : done(true));
+      img.onload = () => done(true);
       img.onerror = () => done(false);
       img.src = this.url(i);
     });
@@ -119,12 +99,19 @@ class FrameSequence {
     ]);
   }
   pump(center) {
-    if (this.loaded >= this.count) return;
+    const centerFrame = Math.round(clamp(center, 0, this.count - 1));
+    // Keep sparse anchor frames plus nearby detail, rather than decoding
+    // the entire film into hundreds of MB while the visitor is idle.
+    for (let i = 0; i < this.count; i++) {
+      if (this.state[i] === 2 && Math.abs(i - centerFrame) > CACHE_RADIUS && i % SKELETON_STRIDE !== 0 && i !== this.count - 1) {
+        this.frames[i] = null; this.state[i] = 0; this.loaded--; this._cache.want = -1;
+      }
+    }
     let guard = 0;
     while (this.inflight < MAX_INFLIGHT && guard++ < 4) {
       const c = Math.round(clamp(center, 0, this.count - 1));
       let found = -1;
-      for (let d = 0; d < this.count; d++) {
+      for (let d = 0; d <= CACHE_RADIUS; d++) {
         if (c + d < this.count && this.state[c + d] === 0) { found = c + d; break; }
         if (c - d >= 0 && this.state[c - d] === 0) { found = c - d; break; }
       }
@@ -155,7 +142,6 @@ export function initHero({ onProgress } = {}) {
   const cue = qs('.hero__cue');
   if (!section || !video) return { ready: Promise.resolve() };
 
-  const reduced = prefersReducedMotion();
   const root = document.documentElement;
 
   /* ---------- copy beats ---------- */
@@ -193,12 +179,13 @@ export function initHero({ onProgress } = {}) {
      RENDERER A — the video element
      ============================================================ */
   let duration = FRAMES / FPS;
-  let seeking = false, wantTime = null;
+  let seeking = false, wantTime = null, seekStarted = 0;
 
   function flushSeek() {
     if (wantTime == null) { seeking = false; return; }
     const t = wantTime; wantTime = null;
-    seeking = true;
+    if (Math.abs(video.currentTime - t) < 0.001) { seeking = false; return; }
+    seeking = true; seekStarted = performance.now();
     DIAG.seeks++;
     try { video.currentTime = t; } catch { seeking = false; }
   }
@@ -220,7 +207,7 @@ export function initHero({ onProgress } = {}) {
   /* ============================================================
      RENDERER B — pre-decoded stills (only if the video cannot run)
      ============================================================ */
-  let ctx = null, cw = 0, ch = 0, lastDrawn = -1;
+  let ctx = null, cw = 0, ch = 0, lastDrawn = -1, lastLoaded = -1;
   function sizeCanvas() {
     const dpr = view.dpr;
     cw = Math.round(view.w * dpr); ch = Math.round(view.h * dpr);
@@ -269,10 +256,11 @@ export function initHero({ onProgress } = {}) {
     locked = v;
     root.toggleAttribute('data-hero-lock', v);
   };
-  if (locked) root.setAttribute('data-hero-lock', '');
+  if (locked) root.removeAttribute('data-hero-lock');
   else { target = LAST; current = LAST; }   // arrived past the hero
 
   function onWheel(e) {
+    if (!live || e.ctrlKey || document.body.hasAttribute('data-locked') || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     const down = e.deltaY > 0;
 
     if (!locked) {
@@ -290,9 +278,9 @@ export function initHero({ onProgress } = {}) {
 
   /* touch: drag up runs the film forward */
   let touchY = null;
-  window.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener('touchstart', (e) => { touchY = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
   window.addEventListener('touchmove', (e) => {
-    if (touchY == null) return;
+    if (e.touches.length !== 1 || touchY == null || !live || document.body.hasAttribute('data-locked')) return;
     const y = e.touches[0].clientY;
     const d = (touchY - y) * 2.4;
     touchY = y;
@@ -302,9 +290,12 @@ export function initHero({ onProgress } = {}) {
     advance(clamp(d, -FEEL.clampEvent, FEEL.clampEvent));
   }, { passive: false });
 
+  window.addEventListener('touchend', () => { touchY = null; }, { passive: true });
+  window.addEventListener('touchcancel', () => { touchY = null; }, { passive: true });
+
   /* keyboard */
   window.addEventListener('keydown', (e) => {
-    if (!locked) return;
+    if (!locked || !live || document.body.hasAttribute('data-locked') || e.target.closest?.('input,textarea,select,button,a,[contenteditable]')) return;
     if (e.key === 'End') { e.preventDefault(); target = LAST; setLock(false); return; }
     if (e.key === 'Home') { e.preventDefault(); target = 0; return; }
     const step = { ArrowDown: 6, ArrowUp: -6, PageDown: 48, PageUp: -48, ' ': 48 }[e.key];
@@ -344,10 +335,17 @@ export function initHero({ onProgress } = {}) {
     if (!live) { updateCopy(current / LAST); updateHud(current / LAST); return; }
 
     if (mode === 'video') {
+      // A stalled decoder must not permanently block later requests.
+      if (seeking && performance.now() - seekStarted > 1500) seeking = false;
       showFrameVideo(current);
+      if (!seeking && wantTime != null) flushSeek();
     } else if (seq) {
-      seq.pump(current);
-      if (Math.abs(current - lastDrawn) > 0.008) showFrameCanvas(current);
+      const frame = current / LAST * (seq.count - 1);
+      seq.pump(frame);
+      // New images can arrive even while the visitor has stopped scrolling.
+      if (Math.abs(frame - lastDrawn) > 0.008 || seq.loaded !== lastLoaded) {
+        showFrameCanvas(frame); lastLoaded = seq.loaded;
+      }
     }
 
     const p = current / LAST;
@@ -390,60 +388,51 @@ export function initHero({ onProgress } = {}) {
   }
 
   /* ============================================================
-     BOOT — full preload, then hand over
+     BOOT — first decoded frame, then hand over
      ============================================================ */
-  async function preloadVideo(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('http ' + res.status);
-    const total = Number(res.headers.get('content-length')) || 0;
-    if (!res.body) { onProgress?.(1); return URL.createObjectURL(await res.blob()); }
-    const reader = res.body.getReader();
-    const chunks = [];
-    let got = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value); got += value.length;
-      if (total) onProgress?.(clamp(got / total, 0, 1));
-    }
-    onProgress?.(1);
-    return URL.createObjectURL(new Blob(chunks, { type: 'video/mp4' }));
-  }
-
   async function startVideo() {
-    const file = pickVideo();
-    /* fetch() is blocked on file://, and a local file needs no buffering
-       strategy anyway — hand the path straight to the element. */
-    const direct = location.protocol === 'file:';
-    const url = direct ? file : await preloadVideo(file);
-    if (direct) onProgress?.(1);
-    video.src = url;
+    // Vercel supports byte ranges: begin rendering the first frame instead
+    // of waiting for an 8-19 MB file to finish downloading into memory.
     video.muted = true;
-    await new Promise((res, rej) => {
-      if (video.readyState >= 2) { res(); return; }
-      video.addEventListener('loadeddata', res, { once: true });
-      video.addEventListener('canplay', res, { once: true });
-      video.addEventListener('error', () => rej(new Error('decode')), { once: true });
-      setTimeout(() => (video.readyState >= 2 ? res() : rej(new Error('timeout'))), 20000);
+    video.playsInline = true;
+    await new Promise((resolve, reject) => {
+      let timer;
+      const clean = () => {
+        clearTimeout(timer);
+        video.removeEventListener('loadeddata', loaded);
+        video.removeEventListener('error', failed);
+      };
+      const loaded = () => { clean(); resolve(); };
+      const failed = () => { clean(); reject(new Error('video unavailable')); };
+      video.addEventListener('loadeddata', loaded);
+      video.addEventListener('error', failed);
+      timer = setTimeout(failed, 8000);
+      video.src = pickVideo();
+      video.load();
     });
-    if (!video.duration || !isFinite(video.duration)) throw new Error('no duration');
+    if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error('no duration');
     video.pause();
     duration = video.duration;
     live = true;
     lastSent = -1;
-    showFrameVideo(0);
+    onProgress?.(1);
+    showFrameVideo(current);
   }
 
   async function startFrames() {
+    video.pause(); video.removeAttribute('src'); video.load();
+    seeking = false; wantTime = null;
     mode = 'frames'; DIAG.mode = 'frames';
     section.setAttribute('data-fallback', '');
     const dir = isTouch() && window.innerWidth < 900 ? FRAME_TIERS.small : FRAME_TIERS.medium;
     seq = new FrameSequence(dir, dir === FRAME_TIERS.small ? 196 : 391);
     ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) throw new Error('canvas unavailable');
     sizeCanvas();
     await seq.loadSkeleton(onProgress);
+    if (!seq.loaded) throw new Error('no fallback frames');
     live = true;
-    showFrameCanvas(0);
+    showFrameCanvas(current / LAST * (seq.count - 1));
   }
 
   const ready = (async () => {
@@ -451,8 +440,10 @@ export function initHero({ onProgress } = {}) {
       await startVideo();
     } catch (err) {
       console.warn('[boreal] video scrubbing unavailable, using frame sequence:', err.message);
-      try { await startFrames(); } catch (e2) { console.error('[boreal] hero failed:', e2); }
+      try { await startFrames(); } catch (e2) { console.error('[boreal] hero failed:', e2); setLock(false); }
     }
+    if (live && locked && window.scrollY <= 1) root.setAttribute('data-hero-lock', '');
+    else if (window.scrollY > 1) setLock(false);
     section.setAttribute('data-ready', '');
     section.setAttribute('data-mode', mode);
   })();
