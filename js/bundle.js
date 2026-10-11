@@ -610,11 +610,11 @@ function initHero({ onProgress } = {}) {
     locked = v;
     root.toggleAttribute('data-hero-lock', v);
   };
-  if (locked) root.removeAttribute('data-hero-lock');
+  if (locked) root.setAttribute('data-hero-lock', '');
   else { target = LAST; current = LAST; }   // arrived past the hero
 
   function onWheel(e) {
-    if (!live || e.ctrlKey || document.body.hasAttribute('data-locked') || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    if (e.ctrlKey || document.body.hasAttribute('data-locked') || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     const down = e.deltaY > 0;
 
     if (!locked) {
@@ -634,7 +634,7 @@ function initHero({ onProgress } = {}) {
   let touchY = null;
   window.addEventListener('touchstart', (e) => { touchY = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
   window.addEventListener('touchmove', (e) => {
-    if (e.touches.length !== 1 || touchY == null || !live || document.body.hasAttribute('data-locked')) return;
+    if (e.touches.length !== 1 || touchY == null || document.body.hasAttribute('data-locked')) return;
     const y = e.touches[0].clientY;
     const d = (touchY - y) * 2.4;
     touchY = y;
@@ -649,7 +649,7 @@ function initHero({ onProgress } = {}) {
 
   /* keyboard */
   window.addEventListener('keydown', (e) => {
-    if (!locked || !live || document.body.hasAttribute('data-locked') || e.target.closest?.('input,textarea,select,button,a,[contenteditable]')) return;
+    if (!locked || document.body.hasAttribute('data-locked') || e.target.closest?.('input,textarea,select,button,a,[contenteditable]')) return;
     if (e.key === 'End') { e.preventDefault(); target = LAST; setLock(false); return; }
     if (e.key === 'Home') { e.preventDefault(); target = 0; return; }
     const step = { ArrowDown: 6, ArrowUp: -6, PageDown: 48, PageUp: -48, ' ': 48 }[e.key];
@@ -658,6 +658,18 @@ function initHero({ onProgress } = {}) {
     target = clamp(target + step, 0, LAST);
     if (target >= LAST - 0.001 && step > 0) setLock(false);
   });
+
+  // Preserve wheel/touch input while the first frame loads. Releasing the
+  // page before media readiness lets a cold visit scroll past the film.
+  // The boot failure path still releases the page if neither renderer works.
+  const restoreDecoder = () => {
+    if (document.hidden || !live || mode !== 'video') return;
+    seeking = false; wantTime = null; lastSent = -1;
+    showFrameVideo(current);
+  };
+  window.addEventListener('focus', restoreDecoder);
+  window.addEventListener('pageshow', restoreDecoder);
+  document.addEventListener('visibilitychange', restoreDecoder);
 
   /* navigation away from the hero releases the wheel; navigation back to
      it rewinds the film and takes the wheel again */
