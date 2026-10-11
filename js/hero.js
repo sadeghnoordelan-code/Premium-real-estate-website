@@ -179,13 +179,15 @@ export function initHero({ onProgress } = {}) {
      RENDERER A — the video element
      ============================================================ */
   let duration = FRAMES / FPS;
-  let seeking = false, wantTime = null, seekStarted = 0;
+  let seeking = false, wantTime = null;
 
   function flushSeek() {
+    // A slow native seek must finish before the next queued frame replaces it.
+    if (video.seeking) { seeking = true; return; }
     if (wantTime == null) { seeking = false; return; }
     const t = wantTime; wantTime = null;
     if (Math.abs(video.currentTime - t) < 0.001) { seeking = false; return; }
-    seeking = true; seekStarted = performance.now();
+    seeking = true;
     DIAG.seeks++;
     try { video.currentTime = t; } catch { seeking = false; }
   }
@@ -195,11 +197,12 @@ export function initHero({ onProgress } = {}) {
   let lastSent = -1;
   function showFrameVideo(frame) {
     // idle: nothing moved, so do not spend a seek on it
-    if (Math.abs(frame - lastSent) < 0.02) return;
+    const desiredTime = clamp((frame + 0.5) / FPS, 0, Math.max(0, duration - 1 / (2 * FPS)));
+    if (Math.abs(frame - lastSent) < 0.02 && (seeking || video.seeking || Math.abs(video.currentTime - desiredTime) < 1 / (2 * FPS))) return;
     if (seeking) DIAG.skipped++;
     lastSent = frame;
     // aim at the middle of the frame's interval so rounding never lands short
-    wantTime = clamp((frame + 0.5) / FPS, 0, Math.max(0, duration - 1 / (2 * FPS)));
+    wantTime = desiredTime;
     if (!seeking) flushSeek();
     DIAG.shown = frame;
   }
@@ -347,8 +350,9 @@ export function initHero({ onProgress } = {}) {
     if (!live) { updateCopy(current / LAST); updateHud(current / LAST); return; }
 
     if (mode === 'video') {
-      // A stalled decoder must not permanently block later requests.
-      if (seeking && performance.now() - seekStarted > 1500) seeking = false;
+      // Recover a missed event only after the native decoder has finished.
+      // Resetting during an actual seek aborts slow range downloads.
+      if (seeking && !video.seeking) seeking = false;
       showFrameVideo(current);
       if (!seeking && wantTime != null) flushSeek();
     } else if (seq) {
